@@ -2,7 +2,6 @@ Shader "PBDFluid/Particle"
 {
 	Properties
 	{
-		_MainTex("Albedo (RGB)", 2D) = "white" {}
 		_Glossiness("Smoothness", Range(0,1)) = 0.5
 		_Metallic("Metallic", Range(0,1)) = 0.0
 	}
@@ -12,23 +11,19 @@ Shader "PBDFluid/Particle"
 		LOD 200
 
 		CGPROGRAM
+		
 		// Physically based Standard lighting model
-		#pragma surface surf Standard addshadow fullforwardshadows
+		#pragma surface surf Standard fullforwardshadows
 		#pragma multi_compile_instancing
 		#pragma instancing_options procedural:setup
 
-		sampler2D _MainTex;
 		float4 _Color;
 		float _Diameter;
-
-		struct Input 
-		{
-			float2 uv_MainTex;
-			float4 color;
-		};
+		half _Glossiness;
+		half _Metallic;
 
 #ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-		StructuredBuffer<float3> _Positions;
+		StructuredBuffer<float4> _Positions;
 #endif
 
 		void setup()
@@ -47,18 +42,15 @@ Shader "PBDFluid/Particle"
 			unity_WorldToObject._11_22_33 = 1.0f / unity_WorldToObject._11_22_33;
 #endif
 		}
-
-		half _Glossiness;
-		half _Metallic;
-
-		void surf(Input IN, inout SurfaceOutputStandard o) 
+		
+		void surf(inout SurfaceOutputStandard o) 
 		{
 			o.Albedo = _Color.rgb;
 			o.Metallic = _Metallic;
 			o.Smoothness = _Glossiness;
 			o.Alpha = 1;
 		}
-	ENDCG
+		
+		ENDCG
 	}
-
 }
