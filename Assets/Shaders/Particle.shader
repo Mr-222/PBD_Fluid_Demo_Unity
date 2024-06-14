@@ -42,8 +42,13 @@ Shader "PBDFluid/Particle"
 			unity_WorldToObject._11_22_33 = 1.0f / unity_WorldToObject._11_22_33;
 #endif
 		}
-		
-		void surf(inout SurfaceOutputStandard o) 
+
+		struct Input 
+		{
+			float4 color;
+		};
+
+		void surf(Input IN, inout SurfaceOutputStandard o) 
 		{
 			o.Albedo = _Color.rgb;
 			o.Metallic = _Metallic;
