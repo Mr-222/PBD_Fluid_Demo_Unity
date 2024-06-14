@@ -1,35 +1,19 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Color = UnityEngine.Color;
 
-public class FluidBody : IDisposable
+public class FluidBoundary : IDisposable
 {
     public ParticlesCPU Particles { get; private set; }
     public ComputeBuffer PositionsBuf { get; private set; }
-    public ComputeBuffer PredictedPositionsBuf { get; private set; }
-    public ComputeBuffer VelocitiesBuf { get; private set; }
-    public ComputeBuffer DensitiesBuf { get; private set;  }
-    public ComputeBuffer LambdasBuf { get; private set; }
     private ComputeBuffer _drawArgsBuf;
 
-    public FluidBody(Bounds bounds, Vector3 velocity)
+    public FluidBoundary(Bounds outerBounds, Bounds innerBounds)
     {
-        Particles = new ParticlesCPU(bounds);
+        Particles = new ParticlesCPU(outerBounds, innerBounds);
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
-        PredictedPositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
-        VelocitiesBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
-        DensitiesBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
-        LambdasBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
-        
         PositionsBuf.SetData(Particles.Positions);
-        PredictedPositionsBuf.SetData(Particles.Positions);
-
-        Vector4[] initialVelocities = new Vector4[Particles.NumParticles];
-        for (int i = 0; i < initialVelocities.Length; ++i)
-            initialVelocities[i] = new Vector4(velocity.x, velocity.y, velocity.z, 0);
-        VelocitiesBuf.SetData(initialVelocities);
     }
 
     public void Draw(Camera cam, Mesh mesh, Material material, int layer)
@@ -38,7 +22,7 @@ public class FluidBody : IDisposable
             CreateArgsBuffer(mesh.GetIndexCount(0));
         
         material.SetBuffer("_Positions", PositionsBuf);
-        material.SetColor("_Color", Color.blue);
+        material.SetColor("_Color", Color.red);
         material.SetFloat("_Diameter", ParticleConfig.Diameter);
 
         ShadowCastingMode castMode = ShadowCastingMode.On;
@@ -56,14 +40,10 @@ public class FluidBody : IDisposable
         _drawArgsBuf = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
         _drawArgsBuf.SetData(args);
     }
-
+    
     public void Dispose()
     {
         CBUtility.Release(PositionsBuf);
-        CBUtility.Release(PredictedPositionsBuf);
-        CBUtility.Release(VelocitiesBuf);
-        CBUtility.Release(DensitiesBuf);
-        CBUtility.Release(LambdasBuf);
         CBUtility.Release(_drawArgsBuf);
     }
 }
