@@ -59,9 +59,9 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
         grad_Ci -= grad_Cj;
     }
 
-    for (int j = 0; j < NumBoundaryParticles; ++j)
+    for (int k = 0; k < NumBoundaryParticles; ++k)
     {
-        float3 pj = BoundaryPositions[j].xyz;
+        float3 pj = BoundaryPositions[k].xyz;
         float3 diff = pi - pj;
         float r = length(diff);
 
@@ -128,9 +128,9 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
         delta_p += (lambda_i + Lambdas[j]) * MassInvDensity * gradW;
     }
 
-    for (int j = 0; j < NumBoundaryParticles; ++j)
+    for (int k = 0; k < NumBoundaryParticles; ++k)
     {
-        float3 pj = BoundaryPositions[j].xyz;
+        float3 pj = BoundaryPositions[k].xyz;
         float3 diff = pi - pj;
         float r = length(diff);
 

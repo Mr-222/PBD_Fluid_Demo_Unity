@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public class PBDFluid : MonoBehaviour, IDisposable
 {
@@ -10,6 +10,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private Material boundaryParticleMat;
     [SerializeField] private bool drawFluidParticle = true;
     [SerializeField] private bool drawBoundaryParticle = false;
+    [SerializeField] private bool drawLines = true;
     [SerializeField] private bool run = true;
     
     private FluidBody _fluid;
@@ -34,14 +35,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
         
         if (drawFluidParticle)
         {
-            AsyncGPUReadback.Request(_fluid.PositionsBuf, request => {
-                if (request.hasError) {
-                    Debug.LogError("GPU readback error detected.");
-                } else {
-                    _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
-                    _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
-                }
-            });
+            _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
+            _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
         }
 
         if (drawBoundaryParticle)
@@ -88,6 +83,47 @@ public class PBDFluid : MonoBehaviour, IDisposable
         outerBounds.SetMinMax(min, max);
 
         _boundary = new FluidBoundary(outerBounds, innerBounds);
+    }
+    
+    private Vector4[] GetCorners(Bounds b)
+    {
+        Vector4[] corners = new Vector4[8];
+        
+        corners[0] = new Vector4(b.min.x, b.min.y, b.min.z, 1);
+        corners[1] = new Vector4(b.min.x, b.min.y, b.max.z, 1);
+        corners[2] = new Vector4(b.max.x, b.min.y, b.max.z, 1);
+        corners[3] = new Vector4(b.max.x, b.min.y, b.min.z, 1);
+
+        corners[4] = new Vector4(b.min.x, b.max.y, b.min.z, 1);
+        corners[5] = new Vector4(b.min.x, b.max.y, b.max.z, 1);
+        corners[6] = new Vector4(b.max.x, b.max.y, b.max.z, 1);
+        corners[7] = new Vector4(b.max.x, b.max.y, b.min.z, 1);
+
+        return corners;
+    }
+    
+    private static IList<int> _cube = new int[]
+    {
+        0, 1, 1, 2, 2, 3, 3, 0,
+        4, 5, 5, 6, 6, 7, 7, 4,
+        0, 4, 1, 5, 2, 6, 3, 7
+    };
+    
+    private void DrawBounds(Camera cam, Color color, Bounds bounds)
+    {
+        Vector4[] corners = GetCorners(bounds);
+        DrawLines.LineMode = LINE_MODE.LINES;
+        DrawLines.Draw(cam, corners, color, Matrix4x4.identity, _cube);
+    }
+
+    private void OnRenderObject()
+    {
+        if (drawLines)
+        {
+            Camera cam = Camera.current;
+            DrawBounds(cam, Color.green, _fluid.Particles.Bounds);
+            DrawBounds(cam, Color.red, _boundary.Particles.Bounds);
+        }
     }
 
     public void Dispose()
