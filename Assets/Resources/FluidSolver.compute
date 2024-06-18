@@ -1,0 +1,214 @@
+#include "SmoothingKernel.hlsl"
+
+#define THREADS 128
+#define PI 3.14159265359
+
+RWStructuredBuffer<float4> FluidPositions;
+RWStructuredBuffer<float4> PredictedPositions;
+StructuredBuffer<float4> BoundaryPositions;
+RWStructuredBuffer<float4> Velocities;
+RWStructuredBuffer<float> Densities;
+RWStructuredBuffer<float> Lambdas;
+
+float3 Gravity;
+float DeltaTime;
+float RestDensity;
+float Viscosity;
+float Mass;
+int NumFluidParticles;
+int NumBoundaryParticles;
+float Psi;
+
+#pragma kernel PredictPositions
+[numthreads(THREADS, 1, 1)]
+void PredictPositions(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float3 velocity = Velocities[id].xyz;
+        velocity += DeltaTime * Gravity;
+
+        float3 position = FluidPositions[id].xyz + DeltaTime * velocity;
+        
+        Velocities[id] = float4(velocity, 0);
+        PredictedPositions[id] = float4(position, 0);
+    }
+}
+
+void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lambda)
+{
+    float InvDensity = 1.0f / RestDensity;
+    float MassInvDensity = Mass * InvDensity;
+
+    density = Mass * Poly6Zero;
+    lambda = 0;
+
+    float sum_grad_C2 = 0;
+    float3 grad_Ci = float3(0, 0, 0);
+
+    for (int j = 0; j < NumFluidParticles; ++j)
+    {
+        float3 pj = PredictedPositions[j].xyz;
+        float3 diff = pi - pj;
+        float r = length(diff);
+
+        if (r > KernelRadius || j == id)
+            continue;
+
+        density += Mass * Poly6Kernel(r);
+        float3 grad_Cj = -MassInvDensity * SpikyGradKernel(diff, r);
+        sum_grad_C2 += dot(grad_Cj, grad_Cj);
+        grad_Ci -= grad_Cj;
+    }
+
+    for (int j = 0; j < NumBoundaryParticles; ++j)
+    {
+        float3 pj = BoundaryPositions[j].xyz;
+        float3 diff = pi - pj;
+        float r = length(diff);
+
+        if (r > KernelRadius)
+            continue;
+
+        density += Psi * Poly6Kernel(r);
+        float3 grad_Cj = -Psi * InvDensity * SpikyGradKernel(diff, r);
+        sum_grad_C2 += dot(grad_Cj, grad_Cj);
+        grad_Ci -= grad_Cj;
+    }
+
+    float C = density * InvDensity - 1.0f;
+    // Only compute lambda if the particle denser than the rest density, so that the fluid doesn't compress
+    // C > 0 for 60% - 65% of particles
+    if (C > 0)
+    {
+        sum_grad_C2 += dot(grad_Ci, grad_Ci);
+
+        // If the fluid is collapsing you need to adjust e.
+        // Its a user specified relaxation parameter that 
+        // needs to be added to stabilze the pressure
+        // due to a vanishing gradient at the smoothing 
+        // kernel borders. The value may need to increase
+        // as the number of particles increase.
+        float e = 60.0f;
+        lambda = -C / (sum_grad_C2 + e);
+    }
+}
+
+#pragma kernel ComputeLambda
+[numthreads(THREADS, 1, 1)]
+void ComputeLambda(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float3 pi = PredictedPositions[id].xyz;
+        
+        float density = 0;
+        float pressure = 0;
+        ComputeDensityAndLambda(id, pi, density, pressure);
+        
+        Densities[id] = density;
+        Lambdas[id] = pressure;
+    }
+}
+
+float3 PositionCorrection(int id, float3 pi, float lambda_i)
+{
+    float3 delta_p = float3(0, 0, 0);
+    float InvDensity = 1.0f / RestDensity;
+    float MassInvDensity = Mass * InvDensity;
+
+    for (int j = 0; j < NumFluidParticles; ++j)
+    {
+        float3 pj = PredictedPositions[j].xyz;
+        float3 diff = pi - pj;
+        float r = length(diff);
+
+        if (r > KernelRadius || j == id)
+            continue;
+
+        float3 gradW = SpikyGradKernel(diff, r);
+        delta_p += (lambda_i + Lambdas[j]) * MassInvDensity * gradW;
+    }
+
+    for (int j = 0; j < NumBoundaryParticles; ++j)
+    {
+        float3 pj = BoundaryPositions[j].xyz;
+        float3 diff = pi - pj;
+        float r = length(diff);
+
+        if (r > KernelRadius)
+            continue;
+
+        float3 gradW = SpikyGradKernel(diff, r);
+        delta_p += lambda_i * Psi * InvDensity * gradW;
+    }
+
+    return delta_p;
+}
+
+#pragma kernel SolveConstraint
+[numthreads(THREADS, 1, 1)]
+void SolveConstraint(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float3 pi = PredictedPositions[id].xyz;
+        float lambda_i = Lambdas[id];
+
+        pi += PositionCorrection(id, pi, lambda_i);
+        
+        AllMemoryBarrierWithGroupSync();
+
+        PredictedPositions[id] = float4(pi, 0);
+    }
+}
+
+#pragma kernel UpdateVelocities
+[numthreads(THREADS, 1, 1)]
+void UpdateVelocities(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float3 pi = FluidPositions[id].xyz;
+        float3 pi_new = PredictedPositions[id].xyz;
+        float3 velocity = (pi_new - pi) / DeltaTime;
+
+        Velocities[id] = float4(velocity, 0);
+    }
+}
+
+#pragma kernel SolveViscosity
+[numthreads(THREADS, 1, 1)]
+void SolveViscosity(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float3 pi = PredictedPositions[id].xyz;
+        float3 velocity = Velocities[id].xyz;
+        
+        for (int j = 0; j < NumFluidParticles; ++j)
+        {
+            float3 pj = PredictedPositions[j].xyz;
+            float3 vj = Velocities[j].xyz;
+            float3 diff = pi - pj;
+            float r = length(diff);
+
+            if (r > KernelRadius || j == id)
+                continue;
+
+            velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
+        }
+
+        Velocities[id] = float4(velocity, 0);
+    }
+}
+
+#pragma kernel UpdatePositions
+[numthreads(THREADS, 1, 1)]
+void UpdatePositions(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        FluidPositions[id] = PredictedPositions[id];
+    }
+}
