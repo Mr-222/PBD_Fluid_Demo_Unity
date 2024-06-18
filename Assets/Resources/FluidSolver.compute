@@ -150,17 +150,19 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
 [numthreads(THREADS, 1, 1)]
 void SolveConstraint(int id : SV_DispatchThreadID)
 {
+    float3 pi = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
-        float3 pi = PredictedPositions[id].xyz;
+        pi = PredictedPositions[id].xyz;
         float lambda_i = Lambdas[id];
 
         pi += PositionCorrection(id, pi, lambda_i);
-        
-        AllMemoryBarrierWithGroupSync();
-
-        PredictedPositions[id] = float4(pi, 0);
     }
+    
+    AllMemoryBarrierWithGroupSync();
+    
+    if (id < NumFluidParticles)
+        PredictedPositions[id] = float4(pi, 0);
 }
 
 #pragma kernel UpdateVelocities
