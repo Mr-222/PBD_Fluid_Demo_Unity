@@ -1,6 +1,7 @@
 using System;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class PBDFluid : MonoBehaviour, IDisposable
 {
@@ -9,22 +10,38 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private Material boundaryParticleMat;
     [SerializeField] private bool drawFluidParticle = true;
     [SerializeField] private bool drawBoundaryParticle = false;
+    [SerializeField] private bool run = true;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
+    private FluidSolver _solver;
+
+    private const float TimeStep = 1f / 60f;
     
     void Start()
     {
         CreateFluid();
         CreateBoundary();
+        _solver = new FluidSolver(_fluid, _boundary);
     }
     
     void Update()
     {
+        if (run)
+        {
+            _solver.Step(TimeStep);
+        }
+        
         if (drawFluidParticle)
         {
-            _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
-            _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
+            AsyncGPUReadback.Request(_fluid.PositionsBuf, request => {
+                if (request.hasError) {
+                    Debug.LogError("GPU readback error detected.");
+                } else {
+                    _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
+                    _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
+                }
+            });
         }
 
         if (drawBoundaryParticle)

@@ -7,6 +7,7 @@ public class FluidBoundary : IDisposable
     public ParticlesCPU Particles { get; private set; }
     public ComputeBuffer PositionsBuf { get; private set; }
     private ComputeBuffer _drawArgsBuf;
+    public float Psi { get; private set; }
 
     public FluidBoundary(Bounds outerBounds, Bounds innerBounds)
     {
@@ -14,6 +15,8 @@ public class FluidBoundary : IDisposable
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
         PositionsBuf.SetData(Particles.Positions);
+        
+        ComputePsi();
     }
 
     public void Draw(Camera cam, Mesh mesh, Material material, int layer)
@@ -39,6 +42,15 @@ public class FluidBoundary : IDisposable
 
         _drawArgsBuf = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
         _drawArgsBuf.SetData(args);
+    }
+
+    // Codebase computes a mass for boundary particle, don't understand the mechanism
+    private void ComputePsi()
+    {
+        var kernel = new SmoothingKernel(ParticleConfig.Radius * 4f);
+        float delta = kernel.Poly6(Vector3.zero);
+        float volume = 1f / delta;
+        Psi = ParticleConfig.RestDensity * volume;
     }
     
     public void Dispose()

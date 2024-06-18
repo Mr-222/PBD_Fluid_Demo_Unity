@@ -27,10 +27,8 @@ void PredictPositions(int id : SV_DispatchThreadID)
     {
         float3 velocity = Velocities[id].xyz;
         velocity += DeltaTime * Gravity;
-
         float3 position = FluidPositions[id].xyz + DeltaTime * velocity;
         
-        Velocities[id] = float4(velocity, 0);
         PredictedPositions[id] = float4(position, 0);
     }
 }
@@ -103,11 +101,11 @@ void ComputeLambda(int id : SV_DispatchThreadID)
         float3 pi = PredictedPositions[id].xyz;
         
         float density = 0;
-        float pressure = 0;
-        ComputeDensityAndLambda(id, pi, density, pressure);
+        float lambda = 0;
+        ComputeDensityAndLambda(id, pi, density, lambda);
         
         Densities[id] = density;
-        Lambdas[id] = pressure;
+        Lambdas[id] = lambda;
     }
 }
 
@@ -183,6 +181,7 @@ void UpdateVelocities(int id : SV_DispatchThreadID)
 [numthreads(THREADS, 1, 1)]
 void SolveViscosity(int id : SV_DispatchThreadID)
 {
+    float3 velocity = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
         float3 pi = PredictedPositions[id].xyz;
@@ -200,9 +199,12 @@ void SolveViscosity(int id : SV_DispatchThreadID)
 
             velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
         }
-
-        Velocities[id] = float4(velocity, 0);
     }
+
+    AllMemoryBarrierWithGroupSync();
+
+    if (id < NumFluidParticles)
+        Velocities[id] = float4(velocity, 0);
 }
 
 #pragma kernel UpdatePositions
