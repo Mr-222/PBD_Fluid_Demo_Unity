@@ -17,7 +17,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private FluidBoundary _boundary;
     private FluidSolver _solver;
 
-    private const float TimeStep = 1f / 60f;
+    private const float TimeStep = 1f / 30f;
     
     void Start()
     {
@@ -49,8 +49,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateFluid()
     {
         Bounds bounds = new Bounds();
-        var min = new Vector3(-8, 0, -1);
-        var max = new Vector3(-4, 8, 2);
+        var min = new Vector3(0, 0, -1);
+        var max = new Vector3(4, 4, 2);
         bounds.SetMinMax(min, max);
 
         _fluid = new FluidBody(bounds, Vector3.zero);
@@ -59,8 +59,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateBoundary()
     {
         Bounds innerBounds = new Bounds();
-        var min = new Vector3(-8, 0, -2);
-        var max = new Vector3(8, 10, 2);
+        var min = new Vector3(0, 0, -2);
+        var max = new Vector3(6, 5, 2);
         innerBounds.SetMinMax(min, max);
         
         // 1-layer boundary particle
@@ -122,7 +122,12 @@ public class PBDFluid : MonoBehaviour, IDisposable
         {
             Camera cam = Camera.current;
             DrawBounds(cam, Color.green, _fluid.Particles.Bounds);
-            DrawBounds(cam, Color.red, _boundary.Particles.Bounds);
+
+            Bounds boundaryInnerBounds = _boundary.Particles.Bounds;
+            float d = ParticleConfig.Diameter;
+            boundaryInnerBounds.min += new Vector3(d, d, d);
+            boundaryInnerBounds.max -= new Vector3(d, d, d);
+            DrawBounds(cam, Color.red, boundaryInnerBounds);
         }
     }
 
