@@ -17,7 +17,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private FluidBoundary _boundary;
     private FluidSolver _solver;
 
-    private const float TimeStep = 1f / 30f;
+    private const float TimeStep = 1f / 60f;
     
     void Start()
     {

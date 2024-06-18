@@ -276,6 +276,8 @@ MonoBehaviour:
   boundaryParticleMat: {fileID: 2100000, guid: 5009b2efe65b5a543b06154a27204620, type: 2}
   drawFluidParticle: 1
   drawBoundaryParticle: 0
+  drawLines: 1
+  run: 1
 --- !u!4 &802545033
 Transform:
   m_ObjectHideFlags: 0

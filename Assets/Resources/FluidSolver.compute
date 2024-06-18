@@ -185,7 +185,7 @@ void SolveViscosity(int id : SV_DispatchThreadID)
     if (id < NumFluidParticles)
     {
         float3 pi = PredictedPositions[id].xyz;
-        float3 velocity = Velocities[id].xyz;
+        velocity = Velocities[id].xyz;
         
         for (int j = 0; j < NumFluidParticles; ++j)
         {
