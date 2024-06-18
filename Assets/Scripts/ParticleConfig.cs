@@ -10,5 +10,5 @@ public static class ParticleConfig
     public const float Volume = 4f / 3f * Mathf.PI * Radius * Radius * Radius;
     public const float Mass = RestDensity * Volume;
     public const float InvMass = 1f / Mass;
-    public const float Viscosity = 0.00003f;
+    public const float Viscosity = 0.00001f;
 }
