@@ -1,18 +1,21 @@
 // https://drive.google.com/file/d/1j5Lu3G80BgsSRyEjEBc4y5klSip1eil6/view
 // https://on-demand.gputechconf.com/gtc/2014/presentations/S4117-fast-fixed-radius-nearest-neighbor-gpu.pdf
 
-#define THREADS 128
+#define THREADS 512
 
-int NumParticles;
+int NumTotalParticles;
+int NumFluidParticles;
+int NumBins;
 float3 GridBoundsMin;
 float3 GridDimension;
 float CellSize;
 
-StructuredBuffer<float4> ParticlesPositions;
+StructuredBuffer<float4> FluidPositions;
+StructuredBuffer<float4> BoundaryPositions;
 RWStructuredBuffer<int> BinCounts;
-StructuredBuffer<int> BinCountsScanned;
+StructuredBuffer<int> BinCountsScanned; // Inclusive scan
 RWStructuredBuffer<int> ParticleIndicesWrite;
-RWStructuredBuffer<int> ParticleIndicesRead;
+StructuredBuffer<int> ParticleIndicesRead;
 
 int CellId(float3 positions)
 {
@@ -25,16 +28,22 @@ int CellId(float3 positions)
 [numthreads(THREADS, 1, 1)]
 void FillZeroes(int id : SV_DispatchThreadID)
 {
-    BinCounts[id] = 0;
+    if (id < NumBins)
+        BinCounts[id] = 0;
 }
 
 #pragma kernel Count
 [numthreads(THREADS, 1, 1)]
 void Count(int id : SV_DispatchThreadID)
 {
-    if (id < NumParticles)
+    if (id < NumTotalParticles)
     {
-        float3 position = ParticlesPositions[id].xyz;
+        float3 position = float3(0, 0, 0);
+        if (id < NumFluidParticles)
+            position = FluidPositions[id].xyz;
+        else
+            position = BoundaryPositions[id - NumFluidParticles].xyz;
+        
         int cellId = CellId(position);
         InterlockedAdd(BinCounts[cellId], 1);
     }
@@ -44,14 +53,19 @@ void Count(int id : SV_DispatchThreadID)
 [numthreads(THREADS, 1, 1)]
 void Sort(int id : SV_DispatchThreadID)
 {
-    if (id < NumParticles)
+    if (id < NumTotalParticles)
     {
-        float3 position = ParticlesPositions[id].xyz;
+        float3 position = float3(0, 0, 0);
+        if (id < NumFluidParticles)
+            position = FluidPositions[id].xyz;
+        else
+            position = BoundaryPositions[id - NumFluidParticles].xyz;
+        
         int cellId = CellId(position);
         
-        int idxInCell = 0;
-        InterlockedAdd(BinCounts[cellId], 1, idxInCell);
-        int idx = BinCountsScanned[cellId] + idxInCell;
+        int CellRemain = 0;
+        InterlockedAdd(BinCounts[cellId], -1, CellRemain);
+        int idx = BinCountsScanned[cellId] - CellRemain;
 
         ParticleIndicesWrite[idx] = id;
     }

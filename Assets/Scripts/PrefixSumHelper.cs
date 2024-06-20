@@ -22,7 +22,7 @@ struct ScanHelper
  
     public void InclusiveScan(int num, ComputeShader scanOperations, ComputeBuffer inputs, ComputeBuffer outputs)
     {
-        this.RequireBuffer(num);
+        RequireBuffer(num);
  
         // 1. Per group scan
         int kernelScan = scanOperations.FindKernel("ScanInGroupsInclusive");
@@ -71,7 +71,7 @@ struct ScanHelper
         scanOperations.Dispatch(kernelAdd, this.work_size[0], 1, 1);
     }
  
-    public void RequireBuffer(int alloc_sz)
+    private void RequireBuffer(int alloc_sz)
     {
         if (this.size < alloc_sz)
         {

@@ -7,16 +7,15 @@ public class FluidSolver
     private const int Read = 0;
     private const int Write = 1;
     public int Groups { get; private set; }
-    
     public int SubSteps { get; set; }
     public int ConstraintIterations { get; set; }
     
     public FluidBoundary Boundary { get; private set; }
     public FluidBody Body { get; private set; }
-    
     public SmoothingKernel Kernel { get; private set; }
 
     private ComputeShader _shader;
+    private SpatialHashing _grid;
 
     public FluidSolver(FluidBody body, FluidBoundary boundary)
     {
@@ -31,6 +30,9 @@ public class FluidSolver
         if (numParticles % Threads != 0) Groups++;
         
         _shader = Resources.Load("FluidSolver") as ComputeShader;
+
+        _grid = new SpatialHashing(Boundary.Particles.Bounds, Body.Particles.NumParticles + Boundary.Particles.NumParticles,
+            Body.Particles.NumParticles, 2 * ParticleConfig.Diameter);
     }
 
     public void Step(float dt)
@@ -61,6 +63,7 @@ public class FluidSolver
         for (int i = 0; i < SubSteps; i++)
         {
             PredictPositions();
+            _grid.GPUSort(Body.PredictedPositionsBuf[Read], Boundary.PositionsBuf);
             SolveConstraints();
             UpdateVelocities();
             ApplyViscosity();
