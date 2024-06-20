@@ -1,0 +1,58 @@
+// https://drive.google.com/file/d/1j5Lu3G80BgsSRyEjEBc4y5klSip1eil6/view
+// https://on-demand.gputechconf.com/gtc/2014/presentations/S4117-fast-fixed-radius-nearest-neighbor-gpu.pdf
+
+#define THREADS 128
+
+int NumParticles;
+float3 GridBoundsMin;
+float3 GridBoundsSize;
+float CellSize;
+
+StructuredBuffer<float4> ParticlesPositions;
+RWStructuredBuffer<int> BinCounts;
+StructuredBuffer<int> BinCountsScanned;
+RWStructuredBuffer<int> ParticleIndicesWrite;
+RWStructuredBuffer<int> ParticleIndicesRead;
+
+int CellId(float3 positions)
+{
+    positions -= GridBoundsMin;
+    int3 coord = floor(positions / CellSize);
+    return coord.z * (GridBoundsSize.y + coord.y) * GridBoundsSize.x + coord.x; 
+}
+
+#pragma FillZeroes
+[numthreads(THREADS, 1, 1)]
+void FillZeros(int id : SV_DispatchThreadID)
+{
+    BinCounts[id] = 0;
+}
+
+#pragma Count
+[numthreads(THREADS, 1, 1)]
+void Count(int id : SV_DispatchThreadID)
+{
+    if (id < NumParticles)
+    {
+        float3 position = ParticlesPositions[id].xyz;
+        int cellId = CellId(position);
+        InterlockedAdd(BinCounts[cellId], 1);
+    }
+}
+
+#pragma Sort
+[numthreads(THREADS, 1, 1)]
+void Sort(int id : SV_DispatchThreadID)
+{
+    if (id < NumParticles)
+    {
+        float3 position = ParticlesPositions[id].xyz;
+        int cellId = CellId(position);
+        
+        int idxInCell = 0;
+        InterlockedAdd(BinCounts[cellId], 1, idxInCell);
+        int idx = BinCountsScanned[cellId] + idxInCell;
+
+        ParticleIndicesWrite[idx] = id;
+    }
+}
