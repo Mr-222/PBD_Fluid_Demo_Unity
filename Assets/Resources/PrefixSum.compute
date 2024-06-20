@@ -1,0 +1,77 @@
+// https://forum.unity.com/threads/parallel-prefix-sum-computeshader.518397/#post-7887517
+
+#define THREADS_PER_GROUP 512 // Ensure that this equals the "threadsPerGroup" variables in the host scripts using this.
+ 
+int N;
+StructuredBuffer<uint> InputBufR;
+RWStructuredBuffer<uint> OutputBufW;
+ 
+groupshared uint bucket[THREADS_PER_GROUP];
+ 
+void Scan(uint id, uint gi, uint x)
+{
+    bucket[gi] = x;
+ 
+    [unroll]
+    for (uint t = 1; t < THREADS_PER_GROUP; t <<= 1) {
+        GroupMemoryBarrierWithGroupSync();
+        uint temp = bucket[gi];
+        if (gi >= t) temp += bucket[gi - t];
+        GroupMemoryBarrierWithGroupSync();
+        bucket[gi] = temp;
+    }
+ 
+    OutputBufW[id] = bucket[gi];
+}
+ 
+// Perform isolated scans within each group.
+#pragma kernel ScanInGroupsInclusive
+[numthreads(THREADS_PER_GROUP, 1, 1)]
+void ScanInGroupsInclusive(uint id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+{
+    uint x = 0;
+    if ((int)id < N)
+        x = InputBufR[id];
+ 
+    Scan(id, gi, x);
+}
+ 
+// Perform isolated scans within each group. Shift the input so as to make the final
+// result (obtained after the ScanSums and AddScannedSums calls) exclusive.
+#pragma kernel ScanInGroupsExclusive
+[numthreads(THREADS_PER_GROUP, 1, 1)]
+void ScanInGroupsExclusive(uint id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+{
+    //uint x = (id == 0) ? 0 : InputBufR[id - 1];
+ 
+    uint idx = (id - 1);
+    uint x = 0;
+    if ((int)idx >= 0 && (int)idx < N)
+        x = InputBufR[idx];
+ 
+    Scan(id, gi, x);
+}
+ 
+// Scan the sums of each of the groups (partial sums) from the preceding ScanInGroupsInclusive/Exclusive call.
+#pragma kernel ScanSums
+[numthreads(THREADS_PER_GROUP, 1, 1)]
+void ScanSums(uint id : SV_DispatchThreadID, uint gi : SV_GroupIndex)
+{
+    //uint x = (id == 0) ? 0 : InputBufR[id * THREADS_PER_GROUP - 1];
+ 
+    uint idx = (id * THREADS_PER_GROUP - 1);
+    uint x = 0;
+    if ((int)idx >= 0 && (int)idx < N)
+        x = InputBufR[idx];
+ 
+    Scan(id, gi, x);
+}
+ 
+// Add the scanned sums to the output of the first kernel call, to get the final, complete prefix sum.
+#pragma kernel AddScannedSums
+[numthreads(THREADS_PER_GROUP, 1, 1)]
+void AddScannedSums(uint id : SV_DispatchThreadID, uint gid : SV_GroupID)
+{
+    if ((int)id < N)
+        OutputBufW[id] += InputBufR[gid];
+}
