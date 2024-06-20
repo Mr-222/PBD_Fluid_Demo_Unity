@@ -5,7 +5,7 @@
 
 int NumParticles;
 float3 GridBoundsMin;
-float3 GridBoundsSize;
+float3 GridDimension;
 float CellSize;
 
 StructuredBuffer<float4> ParticlesPositions;
@@ -18,17 +18,17 @@ int CellId(float3 positions)
 {
     positions -= GridBoundsMin;
     int3 coord = floor(positions / CellSize);
-    return coord.z * (GridBoundsSize.y + coord.y) * GridBoundsSize.x + coord.x; 
+    return coord.z * (GridDimension.y + coord.y) * GridDimension.x + coord.x; 
 }
 
-#pragma FillZeroes
+#pragma kernel FillZeroes
 [numthreads(THREADS, 1, 1)]
-void FillZeros(int id : SV_DispatchThreadID)
+void FillZeroes(int id : SV_DispatchThreadID)
 {
     BinCounts[id] = 0;
 }
 
-#pragma Count
+#pragma kernel Count
 [numthreads(THREADS, 1, 1)]
 void Count(int id : SV_DispatchThreadID)
 {
@@ -40,7 +40,7 @@ void Count(int id : SV_DispatchThreadID)
     }
 }
 
-#pragma Sort
+#pragma kernel Sort
 [numthreads(THREADS, 1, 1)]
 void Sort(int id : SV_DispatchThreadID)
 {
