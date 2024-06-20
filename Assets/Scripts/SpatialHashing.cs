@@ -29,10 +29,6 @@ public class SpatialHashing : IDisposable
         _scanHelper = new ScanHelper();
         _shader = Resources.Load("SpatialHashing") as ComputeShader;
 
-        BinCountsBuffer = new ComputeBuffer(Bins, sizeof(int));
-        BinCountsScannedBuffer = new ComputeBuffer(Bins + 1, sizeof(int));
-        ParticleIndicesBuffer = new ComputeBuffer(TotalParticles, sizeof(int));
-
         Vector3 min, max;
         min = bounds.min;
 
@@ -40,17 +36,23 @@ public class SpatialHashing : IDisposable
         max.y = min.y + Mathf.Ceil(bounds.size.y / cellSize);
         max.z = min.z + Mathf.Ceil(bounds.size.z / cellSize);
 
-        Bounds = new Bounds();
-        Bounds.SetMinMax(min, max);
+        // https://discussions.unity.com/t/issue-with-bounds-setminmax-assigning-incorrectly/73737
+        var bbox = new Bounds();
+        bbox.SetMinMax(min, max);
+        Bounds = bbox;
 
-        int width = (int)Bounds.size.x;
-        int height = (int)Bounds.size.y;
-        int depth = (int)Bounds.size.z;
+        int width = Mathf.FloorToInt(Bounds.size.x / cellSize);
+        int height = Mathf.FloorToInt(Bounds.size.y / cellSize);
+        int depth = Mathf.FloorToInt(Bounds.size.z / cellSize);
         Dimension = new Vector3(width, height, depth);
         Bins = width * height * depth;
-
+        
         GroupsBin = Mathf.CeilToInt((float)Bins / Threads);
         GroupsParticle = Mathf.CeilToInt((float)TotalParticles / Threads);
+        
+        BinCountsBuffer = new ComputeBuffer(Bins, sizeof(int));
+        BinCountsScannedBuffer = new ComputeBuffer(Bins + 1, sizeof(int));
+        ParticleIndicesBuffer = new ComputeBuffer(TotalParticles, sizeof(int));
     }
 
     public void GPUSort(ComputeBuffer fluidPositionsBuf, ComputeBuffer boundaryPositionBuf)
@@ -76,7 +78,7 @@ public class SpatialHashing : IDisposable
         _shader.SetBuffer(sortKernel, "FluidPositions", fluidPositionsBuf);
         _shader.SetBuffer(sortKernel, "BoundaryPositions", boundaryPositionBuf);
         _shader.SetBuffer(sortKernel, "BinCountsScanned", BinCountsScannedBuffer);
-        _shader.SetBuffer(sortKernel, "ParticleIndicesRead", ParticleIndicesBuffer);
+        _shader.SetBuffer(sortKernel, "ParticleIndicesWrite", ParticleIndicesBuffer);
         
         _shader.Dispatch(resetKernel, GroupsBin, 1, 1);
         _shader.Dispatch(countKernel, GroupsParticle, 1, 1);

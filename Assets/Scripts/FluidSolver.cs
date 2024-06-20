@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-public class FluidSolver
+public class FluidSolver : IDisposable
 {
     private const int Threads = 128;
     private const int Read = 0;
@@ -144,5 +144,10 @@ public class FluidSolver
         _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
+    }
+
+    public void Dispose()
+    {
+        _grid.Dispose();
     }
 }

@@ -135,6 +135,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     {
         _fluid.Dispose();
         _boundary.Dispose();
+        _solver.Dispose();
     }
 
     private void OnDestroy()
