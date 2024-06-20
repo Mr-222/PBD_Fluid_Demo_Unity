@@ -4,9 +4,11 @@
 #define PI 3.14159265359
 
 RWStructuredBuffer<float4> FluidPositions;
-RWStructuredBuffer<float4> PredictedPositions;
+StructuredBuffer<float4> PredictedPositionsRead;
+RWStructuredBuffer<float4> PredictedPositionsWrite;
 StructuredBuffer<float4> BoundaryPositions;
-RWStructuredBuffer<float4> Velocities;
+StructuredBuffer<float4> VelocitiesRead;
+RWStructuredBuffer<float4> VelocitiesWrite;
 RWStructuredBuffer<float> Densities;
 RWStructuredBuffer<float> Lambdas;
 
@@ -25,11 +27,11 @@ void PredictPositions(int id : SV_DispatchThreadID)
 {
     if (id < NumFluidParticles)
     {
-        float3 velocity = Velocities[id].xyz;
+        float3 velocity = VelocitiesRead[id].xyz;
         velocity += DeltaTime * Gravity;
         float3 position = FluidPositions[id].xyz + DeltaTime * velocity;
         
-        PredictedPositions[id] = float4(position, 0);
+        PredictedPositionsWrite[id] = float4(position, 0);
     }
 }
 
@@ -46,7 +48,7 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
 
     for (int j = 0; j < NumFluidParticles; ++j)
     {
-        float3 pj = PredictedPositions[j].xyz;
+        float3 pj = PredictedPositionsRead[j].xyz;
         float3 diff = pi - pj;
         float r = length(diff);
 
@@ -98,7 +100,7 @@ void ComputeLambda(int id : SV_DispatchThreadID)
 {
     if (id < NumFluidParticles)
     {
-        float3 pi = PredictedPositions[id].xyz;
+        float3 pi = PredictedPositionsRead[id].xyz;
         
         float density = 0;
         float lambda = 0;
@@ -117,7 +119,7 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
 
     for (int j = 0; j < NumFluidParticles; ++j)
     {
-        float3 pj = PredictedPositions[j].xyz;
+        float3 pj = PredictedPositionsRead[j].xyz;
         float3 diff = pi - pj;
         float r = length(diff);
 
@@ -151,16 +153,14 @@ void SolveConstraint(int id : SV_DispatchThreadID)
     float3 pi = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
-        pi = PredictedPositions[id].xyz;
+        pi = PredictedPositionsRead[id].xyz;
         float lambda_i = Lambdas[id];
 
         pi += PositionCorrection(id, pi, lambda_i);
     }
     
-    AllMemoryBarrierWithGroupSync();
-    
     if (id < NumFluidParticles)
-        PredictedPositions[id] = float4(pi, 0);
+        PredictedPositionsWrite[id] = float4(pi, 0);
 }
 
 #pragma kernel UpdateVelocities
@@ -170,10 +170,10 @@ void UpdateVelocities(int id : SV_DispatchThreadID)
     if (id < NumFluidParticles)
     {
         float3 pi = FluidPositions[id].xyz;
-        float3 pi_new = PredictedPositions[id].xyz;
+        float3 pi_new = PredictedPositionsRead[id].xyz;
         float3 velocity = (pi_new - pi) / DeltaTime;
 
-        Velocities[id] = float4(velocity, 0);
+        VelocitiesWrite[id] = float4(velocity, 0);
     }
 }
 
@@ -184,13 +184,13 @@ void SolveViscosity(int id : SV_DispatchThreadID)
     float3 velocity = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
-        float3 pi = PredictedPositions[id].xyz;
-        velocity = Velocities[id].xyz;
+        float3 pi = PredictedPositionsRead[id].xyz;
+        velocity = VelocitiesRead[id].xyz;
         
         for (int j = 0; j < NumFluidParticles; ++j)
         {
-            float3 pj = PredictedPositions[j].xyz;
-            float3 vj = Velocities[j].xyz;
+            float3 pj = PredictedPositionsRead[j].xyz;
+            float3 vj = VelocitiesRead[j].xyz;
             float3 diff = pi - pj;
             float r = length(diff);
 
@@ -200,11 +200,9 @@ void SolveViscosity(int id : SV_DispatchThreadID)
             velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
         }
     }
-
-    AllMemoryBarrierWithGroupSync();
-
+    
     if (id < NumFluidParticles)
-        Velocities[id] = float4(velocity, 0);
+        VelocitiesWrite[id] = float4(velocity, 0);
 }
 
 #pragma kernel UpdatePositions
@@ -213,6 +211,6 @@ void UpdatePositions(int id : SV_DispatchThreadID)
 {
     if (id < NumFluidParticles)
     {
-        FluidPositions[id] = PredictedPositions[id];
+        FluidPositions[id] = PredictedPositionsRead[id];
     }
 }

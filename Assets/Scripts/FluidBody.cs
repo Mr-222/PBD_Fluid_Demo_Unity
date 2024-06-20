@@ -7,8 +7,8 @@ public class FluidBody : IDisposable
 {
     public ParticlesCPU Particles { get; private set; }
     public ComputeBuffer PositionsBuf { get; private set; }
-    public ComputeBuffer PredictedPositionsBuf { get; private set; }
-    public ComputeBuffer VelocitiesBuf { get; private set; }
+    public ComputeBuffer[] PredictedPositionsBuf { get; private set; }
+    public ComputeBuffer[] VelocitiesBuf { get; private set; }
     public ComputeBuffer DensitiesBuf { get; private set;  }
     public ComputeBuffer LambdasBuf { get; private set; }
     private ComputeBuffer _drawArgsBuf;
@@ -18,18 +18,27 @@ public class FluidBody : IDisposable
         Particles = new ParticlesCPU(bounds);
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
-        PredictedPositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
-        VelocitiesBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
+
+        PredictedPositionsBuf = new ComputeBuffer[2];
+        PredictedPositionsBuf[0] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
+        PredictedPositionsBuf[1] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
+
+        VelocitiesBuf = new ComputeBuffer[2];
+        VelocitiesBuf[0] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
+        VelocitiesBuf[1] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
+        
         DensitiesBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
         LambdasBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
         
         PositionsBuf.SetData(Particles.Positions);
-        PredictedPositionsBuf.SetData(Particles.Positions);
+        PredictedPositionsBuf[0].SetData(Particles.Positions);
+        PredictedPositionsBuf[1].SetData(Particles.Positions);
 
         Vector4[] initialVelocities = new Vector4[Particles.NumParticles];
         for (int i = 0; i < initialVelocities.Length; ++i)
             initialVelocities[i] = new Vector4(velocity.x, velocity.y, velocity.z, 0);
-        VelocitiesBuf.SetData(initialVelocities);
+        VelocitiesBuf[0].SetData(initialVelocities);
+        VelocitiesBuf[1].SetData(initialVelocities);
     }
 
     public void Draw(Camera cam, Mesh mesh, Material material, int layer)

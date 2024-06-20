@@ -4,6 +4,8 @@ using UnityEngine;
 public class FluidSolver
 {
     private const int Threads = 128;
+    private const int Read = 0;
+    private const int Write = 1;
     public int Groups { get; private set; }
     
     public int SubSteps { get; set; }
@@ -71,10 +73,13 @@ public class FluidSolver
         int kernel = _shader.FindKernel("PredictPositions");
         
         _shader.SetBuffer(kernel, "FluidPositions", Body.PositionsBuf);
-        _shader.SetBuffer(kernel, "PredictedPositions", Body.PredictedPositionsBuf);
-        _shader.SetBuffer(kernel, "Velocities", Body.VelocitiesBuf);
+        _shader.SetBuffer(kernel, "PredictedPositionsWrite", Body.PredictedPositionsBuf[Write]);
+        _shader.SetBuffer(kernel, "VelocitiesRead", Body.VelocitiesBuf[Read]);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
+        
+        CBUtility.Swap(Body.PredictedPositionsBuf);
+        CBUtility.Swap(Body.VelocitiesBuf);
     }
     
     public void SolveConstraints()
@@ -82,19 +87,23 @@ public class FluidSolver
         int computeKernel = _shader.FindKernel("ComputeLambda");
         int solveKernel = _shader.FindKernel("SolveConstraint");
         
-        _shader.SetBuffer(computeKernel, "PredictedPositions", Body.PredictedPositionsBuf);
         _shader.SetBuffer(computeKernel, "Densities", Body.DensitiesBuf);
         _shader.SetBuffer(computeKernel, "Lambdas", Body.LambdasBuf);
         _shader.SetBuffer(computeKernel, "BoundaryPositions", Boundary.PositionsBuf);
         
-        _shader.SetBuffer(solveKernel, "PredictedPositions", Body.PredictedPositionsBuf);
         _shader.SetBuffer(solveKernel, "BoundaryPositions", Boundary.PositionsBuf);
         _shader.SetBuffer(solveKernel, "Lambdas", Body.LambdasBuf);
 
         for (int i = 0; i < ConstraintIterations; i++)
         {
+            _shader.SetBuffer(computeKernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
             _shader.Dispatch(computeKernel, Groups, 1, 1);
+            
+            _shader.SetBuffer(solveKernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
+            _shader.SetBuffer(solveKernel, "PredictedPositionsWrite", Body.PredictedPositionsBuf[Write]);
             _shader.Dispatch(solveKernel, Groups, 1, 1);
+            
+            CBUtility.Swap(Body.PredictedPositionsBuf);
         }
     }
     
@@ -103,20 +112,25 @@ public class FluidSolver
         int kernel = _shader.FindKernel("UpdateVelocities");
         
         _shader.SetBuffer(kernel, "FluidPositions", Body.PositionsBuf);
-        _shader.SetBuffer(kernel, "PredictedPositions", Body.PredictedPositionsBuf);
-        _shader.SetBuffer(kernel, "Velocities", Body.VelocitiesBuf);
+        _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
+        _shader.SetBuffer(kernel, "VelocitiesWrite", Body.VelocitiesBuf[Write]);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
+        
+        CBUtility.Swap(Body.VelocitiesBuf);
     }
     
     public void ApplyViscosity()
     {
         int kernel = _shader.FindKernel("SolveViscosity");
         
-        _shader.SetBuffer(kernel, "Velocities", Body.VelocitiesBuf);
-        _shader.SetBuffer(kernel, "PredictedPositions", Body.PredictedPositionsBuf);
+        _shader.SetBuffer(kernel, "VelocitiesRead", Body.VelocitiesBuf[Read]);
+        _shader.SetBuffer(kernel, "VelocitiesWrite", Body.VelocitiesBuf[Write]);
+        _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
+        
+        CBUtility.Swap(Body.VelocitiesBuf);
     }
     
     public void UpdatePositions()
@@ -124,7 +138,7 @@ public class FluidSolver
         int kernel = _shader.FindKernel("UpdatePositions");
         
         _shader.SetBuffer(kernel, "FluidPositions", Body.PositionsBuf);
-        _shader.SetBuffer(kernel, "PredictedPositions", Body.PredictedPositionsBuf);
+        _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
     }
