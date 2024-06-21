@@ -15,13 +15,12 @@ StructuredBuffer<float4> BoundaryPositions;
 RWStructuredBuffer<int> BinCounts;
 StructuredBuffer<int> BinCountsScanned; // Inclusive scan
 RWStructuredBuffer<int> ParticleIndicesWrite;
-StructuredBuffer<int> ParticleIndicesRead;
 
 int CellId(float3 positions)
 {
     positions -= GridBoundsMin;
     int3 coord = floor(positions / CellSize);
-    return coord.z * (GridDimension.y + coord.y) * GridDimension.x + coord.x; 
+    return coord.x + coord.y * GridDimension.x + coord.z * GridDimension.x * GridDimension.y; 
 }
 
 #pragma kernel FillZeroes
@@ -62,7 +61,8 @@ void Sort(int id : SV_DispatchThreadID)
             position = BoundaryPositions[id - NumFluidParticles].xyz;
         
         int cellId = CellId(position);
-        
+
+        // BinCountsScanned is the result of inclusive scan
         int CellRemain = 0;
         InterlockedAdd(BinCounts[cellId], -1, CellRemain);
         int idx = BinCountsScanned[cellId] - CellRemain;

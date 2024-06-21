@@ -49,8 +49,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateFluid()
     {
         Bounds bounds = new Bounds();
-        var min = new Vector3(0, 0, -1);
-        var max = new Vector3(4, 4, 2);
+        Vector3 min = new Vector3(0, 0, -1);
+        Vector3 max = new Vector3(4, 4, 2);
         bounds.SetMinMax(min, max);
 
         _fluid = new FluidBody(bounds, Vector3.zero);
@@ -59,8 +59,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateBoundary()
     {
         Bounds innerBounds = new Bounds();
-        var min = new Vector3(0, 0, -2);
-        var max = new Vector3(6, 5, 2);
+        Vector3 min = new Vector3(0, 0, -2);
+        Vector3 max = new Vector3(6, 5, 2);
         innerBounds.SetMinMax(min, max);
         
         // 1-layer boundary particle

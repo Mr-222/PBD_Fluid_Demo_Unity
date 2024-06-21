@@ -21,6 +21,35 @@ int NumFluidParticles;
 int NumBoundaryParticles;
 float Psi;
 
+// Fast neighbor search
+int NumTotalParticles;
+float3 GridBoundsMin;
+float3 GridDimension;
+float CellSize;
+
+StructuredBuffer<int> BinCountsScanned; // Inclusive scan
+StructuredBuffer<int> ParticleIndices;
+
+int CellId(float3 positions)
+{
+    positions -= GridBoundsMin;
+    int3 coord = floor(positions / CellSize);
+    return coord.x + coord.y * GridDimension.x + coord.z * GridDimension.x * GridDimension.y;
+}
+
+// [start, end) in particle index array
+int2 FindParticlesInCell(int cellId)
+{
+    int2 bounds = int2(0, 0);
+    if (cellId == 0)
+        bounds.x = 0;
+    else
+        bounds.x = BinCountsScanned[cellId - 1];
+    bounds.y = BinCountsScanned[cellId];
+
+    return bounds;
+}
+
 #pragma kernel PredictPositions
 [numthreads(THREADS, 1, 1)]
 void PredictPositions(int id : SV_DispatchThreadID)
@@ -46,34 +75,83 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
     float sum_grad_C2 = 0;
     float3 grad_Ci = float3(0, 0, 0);
 
-    for (int j = 0; j < NumFluidParticles; ++j)
+    // for (int j = 0; j < NumFluidParticles; ++j)
+    // {
+    //     float3 pj = PredictedPositionsRead[j].xyz;
+    //     float3 diff = pi - pj;
+    //     float r = length(diff);
+    //
+    //     if (r > KernelRadius || j == id)
+    //         continue;
+    //
+    //     density += Mass * Poly6Kernel(r);
+    //     float3 grad_Cj = -MassInvDensity * SpikyGradKernel(diff, r);
+    //     sum_grad_C2 += dot(grad_Cj, grad_Cj);
+    //     grad_Ci -= grad_Cj;
+    // }
+    //
+    // for (int k = 0; k < NumBoundaryParticles; ++k)
+    // {
+    //     float3 pj = BoundaryPositions[k].xyz;
+    //     float3 diff = pi - pj;
+    //     float r = length(diff);
+    //
+    //     if (r > KernelRadius)
+    //         continue;
+    //
+    //     density += Psi * Poly6Kernel(r);
+    //     float3 grad_Cj = -Psi * InvDensity * SpikyGradKernel(diff, r);
+    //     sum_grad_C2 += dot(grad_Cj, grad_Cj);
+    //     grad_Ci -= grad_Cj;
+    // }
+
+    int cellId = CellId(pi);
+    [unroll]
+    for (int k = -1; k <= 1; ++k)
     {
-        float3 pj = PredictedPositionsRead[j].xyz;
-        float3 diff = pi - pj;
-        float r = length(diff);
+        for (int j = -1; j <= 1; ++j)
+        {
+            for (int i = -1; i <= 1; ++i)
+            {
+                int neighborCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                int2 bounds = FindParticlesInCell(neighborCellId);
+                for (int idx = bounds.x; idx < bounds.y; ++idx)
+                {
+                    int neighborId = ParticleIndices[idx];
+                    if (id == neighborId)
+                        continue;
 
-        if (r > KernelRadius || j == id)
-            continue;
-
-        density += Mass * Poly6Kernel(r);
-        float3 grad_Cj = -MassInvDensity * SpikyGradKernel(diff, r);
-        sum_grad_C2 += dot(grad_Cj, grad_Cj);
-        grad_Ci -= grad_Cj;
-    }
-
-    for (int k = 0; k < NumBoundaryParticles; ++k)
-    {
-        float3 pj = BoundaryPositions[k].xyz;
-        float3 diff = pi - pj;
-        float r = length(diff);
-
-        if (r > KernelRadius)
-            continue;
-
-        density += Psi * Poly6Kernel(r);
-        float3 grad_Cj = -Psi * InvDensity * SpikyGradKernel(diff, r);
-        sum_grad_C2 += dot(grad_Cj, grad_Cj);
-        grad_Ci -= grad_Cj;
+                    if (neighborId < NumFluidParticles)
+                    {
+                        float3 pj = PredictedPositionsRead[neighborId].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                        
+                        if (r > KernelRadius)
+                            continue;
+                        
+                        density += Mass * Poly6Kernel(r);
+                        float3 grad_Cj = -MassInvDensity * SpikyGradKernel(diff, r);
+                        sum_grad_C2 += dot(grad_Cj, grad_Cj);
+                        grad_Ci -= grad_Cj;
+                    }
+                    else
+                    {
+                        float3 pj = BoundaryPositions[neighborId - NumFluidParticles].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                        
+                        if (r > KernelRadius)
+                            continue;
+                        
+                        density += Psi * Poly6Kernel(r);
+                        float3 grad_Cj = -Psi * InvDensity * SpikyGradKernel(diff, r);
+                        sum_grad_C2 += dot(grad_Cj, grad_Cj);
+                        grad_Ci -= grad_Cj;
+                    }
+                }
+            }
+        }
     }
 
     float C = density * InvDensity - 1.0f;
@@ -117,30 +195,77 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
     float InvDensity = 1.0f / RestDensity;
     float MassInvDensity = Mass * InvDensity;
 
-    for (int j = 0; j < NumFluidParticles; ++j)
+    // for (int j = 0; j < NumFluidParticles; ++j)
+    // {
+    //     float3 pj = PredictedPositionsRead[j].xyz;
+    //     float3 diff = pi - pj;
+    //     float r = length(diff);
+    //
+    //     if (r > KernelRadius || j == id)
+    //         continue;
+    //
+    //     float3 gradW = SpikyGradKernel(diff, r);
+    //     delta_p += (lambda_i + Lambdas[j]) * MassInvDensity * gradW;
+    // }
+    //
+    // for (int k = 0; k < NumBoundaryParticles; ++k)
+    // {
+    //     float3 pj = BoundaryPositions[k].xyz;
+    //     float3 diff = pi - pj;
+    //     float r = length(diff);
+    //
+    //     if (r > KernelRadius)
+    //         continue;
+    //
+    //     float3 gradW = SpikyGradKernel(diff, r);
+    //     delta_p += lambda_i * Psi * InvDensity * gradW;
+    // }
+
+    int cellId = CellId(pi);
+    [unroll]
+    for (int k = -1; k <= 1; ++k)
     {
-        float3 pj = PredictedPositionsRead[j].xyz;
-        float3 diff = pi - pj;
-        float r = length(diff);
+        [unroll]
+        for (int j = -1; j <= 1; ++j)
+        {
+            [unroll]
+            for (int i = -1; i <= 1; ++i)
+            {
+                int neighborCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                int2 bounds = FindParticlesInCell(neighborCellId);
+                for (int idx = bounds.x; idx < bounds.y; idx++)
+                {
+                    int neighborId = ParticleIndices[idx];
+                    if (id == neighborId)
+                        continue;
 
-        if (r > KernelRadius || j == id)
-            continue;
-
-        float3 gradW = SpikyGradKernel(diff, r);
-        delta_p += (lambda_i + Lambdas[j]) * MassInvDensity * gradW;
-    }
-
-    for (int k = 0; k < NumBoundaryParticles; ++k)
-    {
-        float3 pj = BoundaryPositions[k].xyz;
-        float3 diff = pi - pj;
-        float r = length(diff);
-
-        if (r > KernelRadius)
-            continue;
-
-        float3 gradW = SpikyGradKernel(diff, r);
-        delta_p += lambda_i * Psi * InvDensity * gradW;
+                    if (neighborId < NumFluidParticles)
+                    {
+                        float3 pj = PredictedPositionsRead[neighborId].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                        
+                        if (r > KernelRadius)
+                            continue;
+                        
+                        float3 gradW = SpikyGradKernel(diff, r);
+                        delta_p += (lambda_i + Lambdas[neighborId]) * MassInvDensity * gradW;
+                    }
+                    else
+                    {
+                        float3 pj = BoundaryPositions[neighborId - NumFluidParticles].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                        
+                        if (r > KernelRadius)
+                            continue;
+                        
+                        float3 gradW = SpikyGradKernel(diff, r);
+                        delta_p += lambda_i * Psi * InvDensity * gradW;
+                    }
+                }
+            }
+        }
     }
 
     return delta_p;
@@ -150,17 +275,15 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
 [numthreads(THREADS, 1, 1)]
 void SolveConstraint(int id : SV_DispatchThreadID)
 {
-    float3 pi = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
-        pi = PredictedPositionsRead[id].xyz;
+        float3 pi = PredictedPositionsRead[id].xyz;
         float lambda_i = Lambdas[id];
 
         pi += PositionCorrection(id, pi, lambda_i);
-    }
-    
-    if (id < NumFluidParticles)
+
         PredictedPositionsWrite[id] = float4(pi, 0);
+    }
 }
 
 #pragma kernel UpdateVelocities
@@ -181,28 +304,58 @@ void UpdateVelocities(int id : SV_DispatchThreadID)
 [numthreads(THREADS, 1, 1)]
 void SolveViscosity(int id : SV_DispatchThreadID)
 {
-    float3 velocity = float3(0, 0, 0);
     if (id < NumFluidParticles)
     {
         float3 pi = PredictedPositionsRead[id].xyz;
-        velocity = VelocitiesRead[id].xyz;
+        float3 velocity = VelocitiesRead[id].xyz;
         
-        for (int j = 0; j < NumFluidParticles; ++j)
+        // for (int j = 0; j < NumFluidParticles; ++j)
+        // {
+        //     float3 pj = PredictedPositionsRead[j].xyz;
+        //     float3 vj = VelocitiesRead[j].xyz;
+        //     float3 diff = pi - pj;
+        //     float r = length(diff);
+        //
+        //     if (r > KernelRadius || j == id)
+        //         continue;
+        //
+        //     velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
+        // }
+
+        int cellId = CellId(pi);
+        [unroll]
+        for (int k = -1; k <= 1; k++)
         {
-            float3 pj = PredictedPositionsRead[j].xyz;
-            float3 vj = VelocitiesRead[j].xyz;
-            float3 diff = pi - pj;
-            float r = length(diff);
+            [unroll]
+            for (int j = -1; j <= 1; j++)
+            {
+                [unroll]
+                for (int i = -1; i <= 1; i++)
+                {
+                    int neighorCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                    int2 bounds = FindParticlesInCell(neighorCellId);
+                    for (int idx = bounds.x; idx < bounds.y; idx++)
+                    {
+                        int neighborId = ParticleIndices[idx];
+                        if (id == neighborId || id >= NumFluidParticles)
+                            continue;
 
-            if (r > KernelRadius || j == id)
-                continue;
-
-            velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
+                        float3 pj = PredictedPositionsRead[neighborId].xyz;
+                        float3 vj = VelocitiesRead[neighborId].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                        
+                        if (r >= KernelRadius)
+                            continue;
+                        
+                        velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
+                    }
+                }
+            }
         }
-    }
-    
-    if (id < NumFluidParticles)
+
         VelocitiesWrite[id] = float4(velocity, 0);
+    }
 }
 
 #pragma kernel UpdatePositions

@@ -51,7 +51,7 @@ public class SpatialHashing : IDisposable
         GroupsParticle = Mathf.CeilToInt((float)TotalParticles / Threads);
         
         BinCountsBuffer = new ComputeBuffer(Bins, sizeof(int));
-        BinCountsScannedBuffer = new ComputeBuffer(Bins + 1, sizeof(int));
+        BinCountsScannedBuffer = new ComputeBuffer(Bins, sizeof(int));
         ParticleIndicesBuffer = new ComputeBuffer(TotalParticles, sizeof(int));
     }
 

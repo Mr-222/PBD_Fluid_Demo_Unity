@@ -8,7 +8,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-struct ScanHelper
+class ScanHelper
 {
     private const int threadsPerGroup = 512;   // THREADS_PER_GROUP in ScanOperations.compute
     private int size;

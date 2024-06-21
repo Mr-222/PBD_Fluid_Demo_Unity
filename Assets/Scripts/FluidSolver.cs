@@ -58,7 +58,11 @@ public class FluidSolver : IDisposable
         _shader.SetFloat("Mass", ParticleConfig.Mass);
         _shader.SetInt("NumFluidParticles", Body.Particles.NumParticles);
         _shader.SetInt("NumBoundaryParticles", Boundary.Particles.NumParticles);
+        _shader.SetInt("NumTotalParticles", Body.Particles.NumParticles + Boundary.Particles.NumParticles);
         _shader.SetFloat("Psi", Boundary.Psi);
+        _shader.SetVector("GridBoundsMin", _grid.Bounds.min);
+        _shader.SetVector("GridDimension", _grid.Dimension);
+        _shader.SetFloat("CellSize", _grid.CellSize);
         
         for (int i = 0; i < SubSteps; i++)
         {
@@ -93,9 +97,13 @@ public class FluidSolver : IDisposable
         _shader.SetBuffer(computeKernel, "Densities", Body.DensitiesBuf);
         _shader.SetBuffer(computeKernel, "Lambdas", Body.LambdasBuf);
         _shader.SetBuffer(computeKernel, "BoundaryPositions", Boundary.PositionsBuf);
+        _shader.SetBuffer(computeKernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
+        _shader.SetBuffer(computeKernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
         
         _shader.SetBuffer(solveKernel, "BoundaryPositions", Boundary.PositionsBuf);
         _shader.SetBuffer(solveKernel, "Lambdas", Body.LambdasBuf);
+        _shader.SetBuffer(solveKernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
+        _shader.SetBuffer(solveKernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
 
         for (int i = 0; i < ConstraintIterations; i++)
         {
@@ -130,6 +138,8 @@ public class FluidSolver : IDisposable
         _shader.SetBuffer(kernel, "VelocitiesRead", Body.VelocitiesBuf[Read]);
         _shader.SetBuffer(kernel, "VelocitiesWrite", Body.VelocitiesBuf[Write]);
         _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
+        _shader.SetBuffer(kernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
+        _shader.SetBuffer(kernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
         
