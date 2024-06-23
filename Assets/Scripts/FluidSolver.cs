@@ -86,7 +86,6 @@ public class FluidSolver : IDisposable
         _shader.Dispatch(kernel, Groups, 1, 1);
         
         CBUtility.Swap(Body.PredictedPositionsBuf);
-        CBUtility.Swap(Body.VelocitiesBuf);
     }
     
     public void SolveConstraints()

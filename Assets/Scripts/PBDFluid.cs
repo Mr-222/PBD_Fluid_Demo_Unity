@@ -12,6 +12,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private bool drawBoundaryParticle = false;
     [SerializeField] private bool drawLines = true;
     [SerializeField] private bool run = true;
+    [SerializeField] private bool reset = false;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
@@ -28,6 +29,12 @@ public class PBDFluid : MonoBehaviour, IDisposable
     
     void Update()
     {
+        if (reset)
+        {
+            Dispose();
+            Start();
+        }
+        
         if (run)
         {
             _solver.Step(TimeStep);
