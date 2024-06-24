@@ -13,6 +13,17 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private bool drawLines = true;
     [SerializeField] private bool run = true;
     [SerializeField] private bool reset = false;
+
+    [SerializeField, Range(0f, 0.00001f)] private float viscosity = 0.000003f;
+    
+    // The vanishing gradient at the boundary of smoothing kernel can 
+    // cause instability in the denominator when particles are close to separating.
+    // So add a relaxation
+    [SerializeField, Range(0f, 100f)] private float relaxation = 60.0f;
+    
+    // Surface tension
+    [SerializeField, Range(0f, 0.01f)] private float K = 0.001f;
+    [SerializeField, Range(1f, 5f)] private float N = 4;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
@@ -34,6 +45,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
             Dispose();
             Start();
         }
+        
+        SetUserDefinedParameters();
         
         if (run)
         {
@@ -66,8 +79,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateBoundary()
     {
         Bounds innerBounds = new Bounds();
-        Vector3 min = new Vector3(0, 0, -2);
-        Vector3 max = new Vector3(6, 5, 2);
+        Vector3 min = new Vector3(-6, -4, -2);
+        Vector3 max = new Vector3(6, 10, 2);
         innerBounds.SetMinMax(min, max);
         
         // 1-layer boundary particle
@@ -90,6 +103,14 @@ public class PBDFluid : MonoBehaviour, IDisposable
         outerBounds.SetMinMax(min, max);
 
         _boundary = new FluidBoundary(outerBounds, innerBounds);
+    }
+
+    private void SetUserDefinedParameters()
+    {
+        _solver.Viscosity = viscosity;
+        _solver.Relaxation = relaxation;
+        _solver.K = K;
+        _solver.N = N;
     }
     
     private Vector4[] GetCorners(Bounds b)

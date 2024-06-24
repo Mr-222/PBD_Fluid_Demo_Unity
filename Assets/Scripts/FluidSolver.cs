@@ -9,6 +9,11 @@ public class FluidSolver : IDisposable
     public int Groups { get; private set; }
     public int SubSteps { get; set; }
     public int ConstraintIterations { get; set; }
+    public float Viscosity;
+    public float Relaxation;
+    // Surface tension
+    public float K = 0.01f;
+    public float N = 4;
     
     public FluidBoundary Boundary { get; private set; }
     public FluidBody Body { get; private set; }
@@ -21,6 +26,7 @@ public class FluidSolver : IDisposable
     {
         SubSteps = 2;
         ConstraintIterations = 2;
+        Relaxation = 60.0f;
         Body = body;
         Boundary = boundary;
         Kernel = new SmoothingKernel(ParticleConfig.Radius * 4f);
@@ -54,12 +60,15 @@ public class FluidSolver : IDisposable
         _shader.SetVector("Gravity", new Vector4(0f, -9.81f, 0f, 0f));
         _shader.SetFloat("DeltaTime", dt);
         _shader.SetFloat("RestDensity", ParticleConfig.RestDensity);
-        _shader.SetFloat("Viscosity", ParticleConfig.Viscosity);
+        _shader.SetFloat("Viscosity", Viscosity);
         _shader.SetFloat("Mass", ParticleConfig.Mass);
         _shader.SetInt("NumFluidParticles", Body.Particles.NumParticles);
         _shader.SetInt("NumBoundaryParticles", Boundary.Particles.NumParticles);
         _shader.SetInt("NumTotalParticles", Body.Particles.NumParticles + Boundary.Particles.NumParticles);
         _shader.SetFloat("Psi", Boundary.Psi);
+        _shader.SetFloat("Epsilon", Relaxation);
+        _shader.SetFloat("K", K);
+        _shader.SetFloat("N", N);
         _shader.SetVector("GridBoundsMin", _grid.Bounds.min);
         _shader.SetVector("GridDimension", _grid.Dimension);
         _shader.SetFloat("CellSize", _grid.CellSize);

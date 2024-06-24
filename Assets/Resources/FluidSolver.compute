@@ -21,6 +21,12 @@ int NumFluidParticles;
 int NumBoundaryParticles;
 float Psi;
 
+float Epsilon; // Relaxation parameter
+
+// Surface tension parameters
+float K;
+float N;
+
 // Fast neighbor search
 int NumTotalParticles;
 float3 GridBoundsMin;
@@ -167,8 +173,7 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
         // due to a vanishing gradient at the smoothing 
         // kernel borders. The value may need to increase
         // as the number of particles increase.
-        float e = 60.0f;
-        lambda = -C / (sum_grad_C2 + e);
+        lambda = -C / (sum_grad_C2 + Epsilon);
     }
 }
 
@@ -238,7 +243,7 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                     int neighborId = ParticleIndices[idx];
                     if (id == neighborId)
                         continue;
-
+                    
                     if (neighborId < NumFluidParticles)
                     {
                         float3 pj = PredictedPositionsRead[neighborId].xyz;
@@ -248,8 +253,12 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                         if (r > KernelRadius)
                             continue;
                         
+                        // Surface tension, Chapter 4
+                        float delta_q = 0.2f * KernelRadius;
+                        float corr = -K * pow(Poly6Kernel(r) / Poly6Kernel(delta_q), N);
+                        
                         float3 gradW = SpikyGradKernel(diff, r);
-                        delta_p += (lambda_i + Lambdas[neighborId]) * MassInvDensity * gradW;
+                        delta_p += (lambda_i + Lambdas[neighborId] + corr) * MassInvDensity * gradW;
                     }
                     else
                     {

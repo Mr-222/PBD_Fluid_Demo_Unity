@@ -278,6 +278,11 @@ MonoBehaviour:
   drawBoundaryParticle: 0
   drawLines: 1
   run: 1
+  reset: 0
+  viscosity: 0.00000571
+  relaxation: 60
+  K: 0.00504
+  N: 4
 --- !u!4 &802545033
 Transform:
   m_ObjectHideFlags: 0
