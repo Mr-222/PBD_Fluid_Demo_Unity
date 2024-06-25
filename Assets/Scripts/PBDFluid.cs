@@ -26,7 +26,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField, Range(1f, 5f)] private float N = 4;
     
     // Vorticity confinement
-    [SerializeField, Range(0.001f, 0.5f)] private float Vorticity = 1f;
+    [SerializeField, Range(0f, 0.05f)] private float Vorticity = 0.01f;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;

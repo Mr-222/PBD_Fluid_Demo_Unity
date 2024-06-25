@@ -259,7 +259,7 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                             continue;
                         
                         // Surface tension, Chapter 4
-                        float delta_q = 0.2f * KernelRadius;
+                        float delta_q = 0 * KernelRadius;
                         float corr = -K * pow(Poly6Kernel(r) / Poly6Kernel(delta_q), N);
                         
                         float3 gradW = SpikyGradKernel(diff, r);
