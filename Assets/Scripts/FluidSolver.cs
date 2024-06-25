@@ -14,6 +14,8 @@ public class FluidSolver : IDisposable
     // Surface tension
     public float K = 0.01f;
     public float N = 4;
+    // Vorticity Confinement
+    public float Vorticity = 1e-40f;
     
     public FluidBoundary Boundary { get; private set; }
     public FluidBody Body { get; private set; }
@@ -69,6 +71,7 @@ public class FluidSolver : IDisposable
         _shader.SetFloat("Epsilon", Relaxation);
         _shader.SetFloat("K", K);
         _shader.SetFloat("N", N);
+        _shader.SetFloat("Vorticity", Vorticity);
         _shader.SetVector("GridBoundsMin", _grid.Bounds.min);
         _shader.SetVector("GridDimension", _grid.Dimension);
         _shader.SetFloat("CellSize", _grid.CellSize);
@@ -80,6 +83,7 @@ public class FluidSolver : IDisposable
             SolveConstraints();
             UpdateVelocities();
             ApplyViscosity();
+            VorticityConfinement();
             UpdatePositions();
         }
     }
@@ -148,6 +152,23 @@ public class FluidSolver : IDisposable
         _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
         _shader.SetBuffer(kernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
         _shader.SetBuffer(kernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
+        _shader.SetBuffer(kernel, "VorticitiesWrite", Body.VorticitiesBuf);
+        
+        _shader.Dispatch(kernel, Groups, 1, 1);
+        
+        CBUtility.Swap(Body.VelocitiesBuf);
+    }
+
+    public void VorticityConfinement()
+    {
+        int kernel = _shader.FindKernel("SolveVorticity");
+        
+        _shader.SetBuffer(kernel, "VelocitiesRead", Body.VelocitiesBuf[Read]);
+        _shader.SetBuffer(kernel, "VelocitiesWrite", Body.VelocitiesBuf[Write]);
+        _shader.SetBuffer(kernel, "PredictedPositionsRead", Body.PredictedPositionsBuf[Read]);
+        _shader.SetBuffer(kernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
+        _shader.SetBuffer(kernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
+        _shader.SetBuffer(kernel, "VorticitiesRead", Body.VorticitiesBuf);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
         

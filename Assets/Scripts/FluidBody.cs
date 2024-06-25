@@ -11,6 +11,7 @@ public class FluidBody : IDisposable
     public ComputeBuffer[] VelocitiesBuf { get; private set; }
     public ComputeBuffer DensitiesBuf { get; private set;  }
     public ComputeBuffer LambdasBuf { get; private set; }
+    public ComputeBuffer VorticitiesBuf { get; private set; }
     private ComputeBuffer _drawArgsBuf;
 
     public FluidBody(Bounds bounds, Vector3 velocity)
@@ -29,6 +30,7 @@ public class FluidBody : IDisposable
         
         DensitiesBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
         LambdasBuf = new ComputeBuffer(Particles.NumParticles, sizeof(float));
+        VorticitiesBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
         
         PositionsBuf.SetData(Particles.Positions);
         PredictedPositionsBuf[0].SetData(Particles.Positions);
@@ -73,6 +75,7 @@ public class FluidBody : IDisposable
         CBUtility.Release(VelocitiesBuf);
         CBUtility.Release(DensitiesBuf);
         CBUtility.Release(LambdasBuf);
+        CBUtility.Release(VorticitiesBuf);
         CBUtility.Release(_drawArgsBuf);
     }
 }

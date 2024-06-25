@@ -27,6 +27,11 @@ float Epsilon; // Relaxation parameter
 float K;
 float N;
 
+// vorticity confinement
+RWStructuredBuffer<float4> VorticitiesWrite;
+StructuredBuffer<float4> VorticitiesRead;
+float Vorticity;
+
 // Fast neighbor search
 int NumTotalParticles;
 float3 GridBoundsMin;
@@ -331,6 +336,7 @@ void SolveViscosity(int id : SV_DispatchThreadID)
         //     velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
         // }
 
+        float3 vorticity = float3(0, 0, 0);
         int cellId = CellId(pi);
         [unroll]
         for (int k = -1; k <= 1; k++)
@@ -356,14 +362,76 @@ void SolveViscosity(int id : SV_DispatchThreadID)
                         
                         if (r >= KernelRadius)
                             continue;
+
+                        float3 v_ij = vj - velocity;
+                        velocity += Viscosity * v_ij * ViscLapKernel(r);
                         
-                        velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
+                        vorticity += cross(v_ij, SpikyGradKernel(diff, r));
                     }
                 }
             }
         }
 
+        VorticitiesWrite[id] = float4(vorticity, 0);
         VelocitiesWrite[id] = float4(velocity, 0);
+    }
+}
+
+#pragma kernel SolveVorticity
+[numthreads(THREADS, 1, 1)]
+void SolveVorticity(int id : SV_DispatchThreadID)
+{
+    if (id < NumFluidParticles)
+    {
+        float InvDensity = 1.0f / RestDensity;
+        float MassInvDensity = Mass * InvDensity;
+        
+        float3 pi = PredictedPositionsRead[id];
+        float3 vorticity_i = VorticitiesRead[id];
+        
+        float3 eta = float3(0, 0, 0);
+        int cellId = CellId(pi);
+        [unroll]
+        for (int k = -1; k <= 1; k++)
+        {
+            [unroll]
+            for (int j = -1; j <= 1; j++)
+            {
+                [unroll]
+                for (int i = -1; i <= 1; i++)
+                {
+                    int neighorCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                    int2 bounds = FindParticlesInCell(neighorCellId);
+                    for (int idx = bounds.x; idx < bounds.y; idx++)
+                    {
+                        int neighborId = ParticleIndices[idx];
+                        if (id == neighborId || id >= NumFluidParticles)
+                            continue;
+
+                        float3 pj = PredictedPositionsRead[neighborId].xyz;
+                        float3 diff = pi - pj;
+                        float r = length(diff);
+                                
+                        if (r >= KernelRadius)
+                            continue;
+
+                        // Vorticity confinement
+                        eta += MassInvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
+                    }
+                }
+            }
+        }
+
+        // Vorticity confinement
+        float3 force = float3(0, 0, 0);
+        if (length(vorticity_i) != 0 && length(eta) != 0)
+        {
+            float3 N = normalize(eta);
+            force = Vorticity * cross(N, vorticity_i);
+        }
+
+        float3 velocity = VelocitiesRead[id];
+        VelocitiesWrite[id] = float4(velocity + DeltaTime * force, 0);
     }
 }
 
