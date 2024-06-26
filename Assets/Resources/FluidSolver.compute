@@ -353,21 +353,37 @@ void SolveViscosity(int id : SV_DispatchThreadID)
                     for (int idx = bounds.x; idx < bounds.y; idx++)
                     {
                         int neighborId = ParticleIndices[idx];
-                        if (id == neighborId || id >= NumFluidParticles)
+                        if (id == neighborId)
                             continue;
 
-                        float3 pj = PredictedPositionsRead[neighborId].xyz;
-                        float3 vj = VelocitiesRead[neighborId].xyz;
-                        float3 diff = pi - pj;
-                        float r = length(diff);
+                        if (neighborId < NumFluidParticles)
+                        {
+                            float3 pj = PredictedPositionsRead[neighborId].xyz;
+                            float3 vj = VelocitiesRead[neighborId].xyz;
+                            float3 diff = pi - pj;
+                            float r = length(diff);
                         
-                        if (r >= KernelRadius)
-                            continue;
+                            if (r >= KernelRadius)
+                                continue;
 
-                        float3 v_ij = vj - velocity;
-                        velocity += Viscosity * v_ij * ViscLapKernel(r);
+                            float3 v_ij = vj - velocity;
+                            velocity += Viscosity * v_ij * ViscLapKernel(r);
                         
-                        vorticity += cross(v_ij, SpikyGradKernel(diff, r));
+                            vorticity += cross(v_ij, SpikyGradKernel(diff, r));   
+                        }
+                        else
+                        {
+                            float3 pj = BoundaryPositions[neighborId - NumFluidParticles].xyz;
+                            float3 vj = float3(0, 0, 0);
+                            float3 diff = pi - pj;
+                            float r = length(diff);
+                        
+                            if (r >= KernelRadius)
+                                continue;
+
+                            float3 v_ij = vj - velocity;
+                            vorticity += cross(v_ij, SpikyGradKernel(diff, r));
+                        }
                     }
                 }
             }
@@ -406,18 +422,33 @@ void SolveVorticity(int id : SV_DispatchThreadID)
                     for (int idx = bounds.x; idx < bounds.y; idx++)
                     {
                         int neighborId = ParticleIndices[idx];
-                        if (id == neighborId || id >= NumFluidParticles)
+                        if (id == neighborId)
                             continue;
 
-                        float3 pj = PredictedPositionsRead[neighborId].xyz;
-                        float3 diff = pi - pj;
-                        float r = length(diff);
+                        if (neighborId < NumFluidParticles)
+                        {
+                            float3 pj = PredictedPositionsRead[neighborId].xyz;
+                            float3 diff = pi - pj;
+                            float r = length(diff);
                                 
-                        if (r >= KernelRadius)
-                            continue;
+                            if (r >= KernelRadius)
+                                continue;
 
-                        // Vorticity confinement
-                        eta += MassInvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
+                            // Vorticity confinement
+                            eta += MassInvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
+                        }
+                        else
+                        {
+                            // float3 pj = BoundaryPositions[neighborId - NumFluidParticles].xyz;
+                            // float3 diff = pi - pj;
+                            // float r = length(diff);
+                            //     
+                            // if (r >= KernelRadius)
+                            //     continue;
+                            //
+                            // // Vorticity confinement
+                            // eta += Psi * InvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
+                        }
                     }
                 }
             }

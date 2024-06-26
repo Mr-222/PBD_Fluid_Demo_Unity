@@ -283,7 +283,7 @@ MonoBehaviour:
   relaxation: 60
   K: 0.001
   N: 4
-  Vorticity: 0.03
+  Vorticity: 0.001
 --- !u!4 &802545033
 Transform:
   m_ObjectHideFlags: 0

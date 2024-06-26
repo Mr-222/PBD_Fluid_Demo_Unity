@@ -26,7 +26,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField, Range(1f, 5f)] private float N = 4;
     
     // Vorticity confinement
-    [SerializeField, Range(0f, 0.05f)] private float Vorticity = 0.03f;
+    [SerializeField, Range(0f, 0.01f)] private float Vorticity = 0.001f;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
@@ -82,8 +82,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateBoundary()
     {
         Bounds innerBounds = new Bounds();
-        Vector3 min = new Vector3(-5, -4, -2);
-        Vector3 max = new Vector3(5, 10, 2);
+        Vector3 min = new Vector3(-10, -4, -2);
+        Vector3 max = new Vector3(10, 10, 2);
         innerBounds.SetMinMax(min, max);
         
         // 1-layer boundary particle

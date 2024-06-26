@@ -153,6 +153,7 @@ public class FluidSolver : IDisposable
         _shader.SetBuffer(kernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
         _shader.SetBuffer(kernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
         _shader.SetBuffer(kernel, "VorticitiesWrite", Body.VorticitiesBuf);
+        _shader.SetBuffer(kernel,"BoundaryPositions", Boundary.PositionsBuf);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
         
@@ -169,6 +170,7 @@ public class FluidSolver : IDisposable
         _shader.SetBuffer(kernel, "BinCountsScanned", _grid.BinCountsScannedBuffer);
         _shader.SetBuffer(kernel, "ParticleIndices", _grid.ParticleIndicesBuffer);
         _shader.SetBuffer(kernel, "VorticitiesRead", Body.VorticitiesBuf);
+        _shader.SetBuffer(kernel,"BoundaryPositions", Boundary.PositionsBuf);
         
         _shader.Dispatch(kernel, Groups, 1, 1);
         
