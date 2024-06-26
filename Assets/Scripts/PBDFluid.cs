@@ -13,6 +13,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private bool drawLines = true;
     [SerializeField] private bool run = true;
     [SerializeField] private bool reset = false;
+    [SerializeField] private Vector3 initialVelocity = new Vector3(0, 0, 0);
 
     [SerializeField, Range(0f, 0.00001f)] private float viscosity = 0.000003f;
     
@@ -26,7 +27,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField, Range(1f, 5f)] private float N = 4;
     
     // Vorticity confinement
-    [SerializeField, Range(0f, 0.01f)] private float Vorticity = 0.001f;
+    [SerializeField, Range(0f, 0.01f)] private float Vorticity = 0.002f;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
@@ -76,7 +77,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
         Vector3 max = new Vector3(4, 4, 2);
         bounds.SetMinMax(min, max);
 
-        _fluid = new FluidBody(bounds, Vector3.zero);
+        _fluid = new FluidBody(bounds, initialVelocity);
     }
 
     private void CreateBoundary()
