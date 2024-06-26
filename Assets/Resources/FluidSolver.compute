@@ -80,7 +80,8 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
     float InvDensity = 1.0f / RestDensity;
     float MassInvDensity = Mass * InvDensity;
 
-    density = Mass * Poly6Zero;
+    //density = Mass * Poly6Zero;
+    density = 0;
     lambda = 0;
 
     float sum_grad_C2 = 0;
