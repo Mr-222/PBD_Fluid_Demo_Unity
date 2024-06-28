@@ -10,11 +10,15 @@ public class FluidSolver : IDisposable
     public int SubSteps { get; set; }
     public int ConstraintIterations { get; set; }
     public float Viscosity;
-    public float Relaxation;
+    // Constraint relaxation 
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 3
+    public float Relaxation = 60.0f;
     // Surface tension
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 4
     public float K = 0.01f;
     public float N = 4;
     // Vorticity Confinement
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 5
     public float Vorticity = 1e-40f;
     
     public FluidBoundary Boundary { get; private set; }
@@ -28,7 +32,6 @@ public class FluidSolver : IDisposable
     {
         SubSteps = 2;
         ConstraintIterations = 2;
-        Relaxation = 60.0f;
         Body = body;
         Boundary = boundary;
         Kernel = new SmoothingKernel(ParticleConfig.Radius * 4f);

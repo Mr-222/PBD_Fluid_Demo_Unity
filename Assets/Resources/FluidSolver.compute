@@ -19,6 +19,11 @@ float Viscosity;
 float Mass;
 int NumFluidParticles;
 int NumBoundaryParticles;
+
+// Precompute a coefficient to make up for imperfect sampling pattern since we are using one-layer boundary instead of two
+// Similar idea can be found in paper :
+// Smoothed Particle Hydrodynamics Techniques for the Physics Based Simulation of Fluids and Solids
+// https://sph-tutorial.physics-simulation.org/pdf/SPH_Tutorial.pdf Chapter 5.1.1
 float Psi;
 
 float Epsilon; // Relaxation parameter

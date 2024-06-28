@@ -44,7 +44,10 @@ public class FluidBoundary : IDisposable
         _drawArgsBuf.SetData(args);
     }
 
-    // Codebase computes a mass for boundary particle, don't understand the mechanism
+    // Precompute a coefficient to make up for imperfect sampling pattern since we are using one-layer boundary instead of two
+    // Similar idea can be found in paper :
+    // Smoothed Particle Hydrodynamics Techniques for the Physics Based Simulation of Fluids and Solids
+    // https://sph-tutorial.physics-simulation.org/pdf/SPH_Tutorial.pdf Chapter 5.1.1
     private void ComputePsi()
     {
         var kernel = new SmoothingKernel(ParticleConfig.Radius * 4f);

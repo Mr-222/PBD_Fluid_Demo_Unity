@@ -20,6 +20,7 @@ public class FluidBody : IDisposable
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
 
+        // Use double buffer since we want to read and write this data in one compute kernel
         PredictedPositionsBuf = new ComputeBuffer[2];
         PredictedPositionsBuf[0] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
         PredictedPositionsBuf[1] = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
