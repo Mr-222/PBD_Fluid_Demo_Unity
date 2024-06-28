@@ -145,7 +145,7 @@ public class FluidSolver : IDisposable
     
     public void ApplyViscosity()
     {
-        int kernel = _shader.FindKernel("SolveViscosity");
+        int kernel = _shader.FindKernel("SolveViscosityAndCurl");
         
         _shader.SetBuffer(kernel, "VelocitiesRead", Body.VelocitiesBuf[Read]);
         _shader.SetBuffer(kernel, "VelocitiesWrite", Body.VelocitiesBuf[Write]);

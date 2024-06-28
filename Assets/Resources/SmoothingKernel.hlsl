@@ -1,6 +1,9 @@
 #ifndef SMOOTHING_KERNEL
 #define SMOOTHING_KERNEL
 
+// Particle-Based Fluid Simulation for Interactive Applications
+// https://matthias-research.github.io/pages/publications/sca03.pdf
+
 float KernelRadius;
 float KernelRadius2;
 

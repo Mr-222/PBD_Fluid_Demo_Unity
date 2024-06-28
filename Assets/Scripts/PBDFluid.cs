@@ -20,13 +20,16 @@ public class PBDFluid : MonoBehaviour, IDisposable
     // The vanishing gradient at the boundary of smoothing kernel can 
     // cause instability in the denominator when particles are close to separating.
     // So add a relaxation
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 3
     [SerializeField, Range(0f, 100f)] private float relaxation = 60.0f;
     
     // Surface tension
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 4
     [SerializeField, Range(0f, 0.01f)] private float K = 0.001f;
     [SerializeField, Range(1f, 5f)] private float N = 4;
     
     // Vorticity confinement
+    // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 5
     [SerializeField, Range(0f, 0.01f)] private float Vorticity = 0.002f;
     
     private FluidBody _fluid;
@@ -83,8 +86,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateBoundary()
     {
         Bounds innerBounds = new Bounds();
-        Vector3 min = new Vector3(-10, -4, -2);
-        Vector3 max = new Vector3(10, 10, 2);
+        Vector3 min = new Vector3(-6, -4, -2);
+        Vector3 max = new Vector3(6, 10, 2);
         innerBounds.SetMinMax(min, max);
         
         // 1-layer boundary particle

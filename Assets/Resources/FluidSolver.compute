@@ -75,47 +75,18 @@ void PredictPositions(int id : SV_DispatchThreadID)
     }
 }
 
+// Position Based Fluids
+// https://mmacklin.com/pbf_sig_preprint.pdf Chapter 3
 void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lambda)
 {
     float InvDensity = 1.0f / RestDensity;
     float MassInvDensity = Mass * InvDensity;
 
-    //density = Mass * Poly6Zero;
     density = 0;
     lambda = 0;
 
     float sum_grad_C2 = 0;
     float3 grad_Ci = float3(0, 0, 0);
-
-    // for (int j = 0; j < NumFluidParticles; ++j)
-    // {
-    //     float3 pj = PredictedPositionsRead[j].xyz;
-    //     float3 diff = pi - pj;
-    //     float r = length(diff);
-    //
-    //     if (r > KernelRadius || j == id)
-    //         continue;
-    //
-    //     density += Mass * Poly6Kernel(r);
-    //     float3 grad_Cj = -MassInvDensity * SpikyGradKernel(diff, r);
-    //     sum_grad_C2 += dot(grad_Cj, grad_Cj);
-    //     grad_Ci -= grad_Cj;
-    // }
-    //
-    // for (int k = 0; k < NumBoundaryParticles; ++k)
-    // {
-    //     float3 pj = BoundaryPositions[k].xyz;
-    //     float3 diff = pi - pj;
-    //     float r = length(diff);
-    //
-    //     if (r > KernelRadius)
-    //         continue;
-    //
-    //     density += Psi * Poly6Kernel(r);
-    //     float3 grad_Cj = -Psi * InvDensity * SpikyGradKernel(diff, r);
-    //     sum_grad_C2 += dot(grad_Cj, grad_Cj);
-    //     grad_Ci -= grad_Cj;
-    // }
 
     int cellId = CellId(pi);
     [unroll]
@@ -139,7 +110,7 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
                         float3 diff = pi - pj;
                         float r = length(diff);
                         
-                        if (r > KernelRadius)
+                        if (r >= KernelRadius)
                             continue;
                         
                         density += Mass * Poly6Kernel(r);
@@ -153,7 +124,7 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
                         float3 diff = pi - pj;
                         float r = length(diff);
                         
-                        if (r > KernelRadius)
+                        if (r >= KernelRadius)
                             continue;
                         
                         density += Psi * Poly6Kernel(r);
@@ -200,38 +171,14 @@ void ComputeLambda(int id : SV_DispatchThreadID)
     }
 }
 
+// Position Based Fluids
+// https://mmacklin.com/pbf_sig_preprint.pdf Chapter 3
 float3 PositionCorrection(int id, float3 pi, float lambda_i)
 {
     float3 delta_p = float3(0, 0, 0);
     float InvDensity = 1.0f / RestDensity;
     float MassInvDensity = Mass * InvDensity;
-
-    // for (int j = 0; j < NumFluidParticles; ++j)
-    // {
-    //     float3 pj = PredictedPositionsRead[j].xyz;
-    //     float3 diff = pi - pj;
-    //     float r = length(diff);
-    //
-    //     if (r > KernelRadius || j == id)
-    //         continue;
-    //
-    //     float3 gradW = SpikyGradKernel(diff, r);
-    //     delta_p += (lambda_i + Lambdas[j]) * MassInvDensity * gradW;
-    // }
-    //
-    // for (int k = 0; k < NumBoundaryParticles; ++k)
-    // {
-    //     float3 pj = BoundaryPositions[k].xyz;
-    //     float3 diff = pi - pj;
-    //     float r = length(diff);
-    //
-    //     if (r > KernelRadius)
-    //         continue;
-    //
-    //     float3 gradW = SpikyGradKernel(diff, r);
-    //     delta_p += lambda_i * Psi * InvDensity * gradW;
-    // }
-
+    
     int cellId = CellId(pi);
     [unroll]
     for (int k = -1; k <= 1; ++k)
@@ -256,12 +203,11 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                         float3 diff = pi - pj;
                         float r = length(diff);
                         
-                        if (r > KernelRadius)
+                        if (r >= KernelRadius)
                             continue;
                         
                         // Surface tension, Chapter 4
-                        //float delta_q = 0 * KernelRadius;
-                        float corr = -K * pow(Poly6Kernel(r) / Poly6Zero, N);
+                        float corr = -K * pow(abs(Poly6Kernel(r) / Poly6Zero), N);
                         
                         float3 gradW = SpikyGradKernel(diff, r);
                         delta_p += (lambda_i + Lambdas[neighborId] + corr) * MassInvDensity * gradW;
@@ -272,7 +218,7 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                         float3 diff = pi - pj;
                         float r = length(diff);
                         
-                        if (r > KernelRadius)
+                        if (r >= KernelRadius)
                             continue;
                         
                         float3 gradW = SpikyGradKernel(diff, r);
@@ -315,27 +261,16 @@ void UpdateVelocities(int id : SV_DispatchThreadID)
     }
 }
 
-#pragma kernel SolveViscosity
+// Position Based Fluids
+// https://mmacklin.com/pbf_sig_preprint.pdf Chapter 5
+#pragma kernel SolveViscosityAndCurl
 [numthreads(THREADS, 1, 1)]
-void SolveViscosity(int id : SV_DispatchThreadID)
+void SolveViscosityAndCurl(int id : SV_DispatchThreadID)
 {
     if (id < NumFluidParticles)
     {
         float3 pi = PredictedPositionsRead[id].xyz;
         float3 velocity = VelocitiesRead[id].xyz;
-        
-        // for (int j = 0; j < NumFluidParticles; ++j)
-        // {
-        //     float3 pj = PredictedPositionsRead[j].xyz;
-        //     float3 vj = VelocitiesRead[j].xyz;
-        //     float3 diff = pi - pj;
-        //     float r = length(diff);
-        //
-        //     if (r > KernelRadius || j == id)
-        //         continue;
-        //
-        //     velocity += Viscosity * (vj - velocity) * ViscLapKernel(r);
-        // }
 
         float3 vorticity = float3(0, 0, 0);
         int cellId = CellId(pi);
@@ -368,7 +303,6 @@ void SolveViscosity(int id : SV_DispatchThreadID)
 
                             float3 v_ij = vj - velocity;
                             velocity += Viscosity * v_ij * ViscLapKernel(r);
-                        
                             vorticity += cross(v_ij, SpikyGradKernel(diff, r));   
                         }
                         else
@@ -394,6 +328,8 @@ void SolveViscosity(int id : SV_DispatchThreadID)
     }
 }
 
+// Position Based Fluids
+// https://mmacklin.com/pbf_sig_preprint.pdf Chapter 5
 #pragma kernel SolveVorticity
 [numthreads(THREADS, 1, 1)]
 void SolveVorticity(int id : SV_DispatchThreadID)
@@ -403,8 +339,8 @@ void SolveVorticity(int id : SV_DispatchThreadID)
         float InvDensity = 1.0f / RestDensity;
         float MassInvDensity = Mass * InvDensity;
         
-        float3 pi = PredictedPositionsRead[id];
-        float3 vorticity_i = VorticitiesRead[id];
+        float3 pi = PredictedPositionsRead[id].xyz;
+        float3 vorticity_i = VorticitiesRead[id].xyz;
         
         float3 eta = float3(0, 0, 0);
         int cellId = CellId(pi);
@@ -435,19 +371,7 @@ void SolveVorticity(int id : SV_DispatchThreadID)
                                 continue;
 
                             // Vorticity confinement
-                            eta += MassInvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
-                        }
-                        else
-                        {
-                            // float3 pj = BoundaryPositions[neighborId - NumFluidParticles].xyz;
-                            // float3 diff = pi - pj;
-                            // float r = length(diff);
-                            //     
-                            // if (r >= KernelRadius)
-                            //     continue;
-                            //
-                            // // Vorticity confinement
-                            // eta += Psi * InvDensity * length(VorticitiesRead[neighborId]) * SpikyGradKernel(diff, r);
+                            eta += MassInvDensity * length(VorticitiesRead[neighborId].xyz) * SpikyGradKernel(diff, r);
                         }
                     }
                 }
@@ -462,7 +386,7 @@ void SolveVorticity(int id : SV_DispatchThreadID)
             force = Vorticity * cross(N, vorticity_i);
         }
 
-        float3 velocity = VelocitiesRead[id];
+        float3 velocity = VelocitiesRead[id].xyz;
         VelocitiesWrite[id] = float4(velocity + DeltaTime * force, 0);
     }
 }

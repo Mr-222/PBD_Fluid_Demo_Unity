@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 
+// Particle-Based Fluid Simulation for Interactive Applications
+// https://matthias-research.github.io/pages/publications/sca03.pdf
 public class SmoothingKernel
 {
     public float Poly6Coeff { get; private set; }
@@ -28,11 +30,6 @@ public class SmoothingKernel
     float Pow3(float v)
     {
         return v * v * v;
-    }
-
-    float Pow2(float v)
-    {
-        return v * v;
     }
 
     public float Poly6(Vector3 p)
