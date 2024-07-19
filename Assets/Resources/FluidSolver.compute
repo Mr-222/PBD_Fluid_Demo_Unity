@@ -102,6 +102,8 @@ void ComputeDensityAndLambda(int id, float3 pi, out float density, out float lam
             for (int i = -1; i <= 1; ++i)
             {
                 int neighborCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                if (neighborCellId < 0 || neighborCellId >= GridDimension.x * GridDimension.y * GridDimension.z)
+                    continue;
                 int2 bounds = FindParticlesInCell(neighborCellId);
                 for (int idx = bounds.x; idx < bounds.y; ++idx)
                 {
@@ -195,6 +197,8 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
             for (int i = -1; i <= 1; ++i)
             {
                 int neighborCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                if (neighborCellId < 0 || neighborCellId >= GridDimension.x * GridDimension.y * GridDimension.z)
+                    continue;
                 int2 bounds = FindParticlesInCell(neighborCellId);
                 for (int idx = bounds.x; idx < bounds.y; idx++)
                 {
@@ -289,6 +293,8 @@ void SolveViscosityAndCurl(int id : SV_DispatchThreadID)
                 for (int i = -1; i <= 1; i++)
                 {
                     int neighorCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                    if (neighorCellId < 0 || neighorCellId >= GridDimension.x * GridDimension.y * GridDimension.z)
+                        continue;
                     int2 bounds = FindParticlesInCell(neighorCellId);
                     for (int idx = bounds.x; idx < bounds.y; idx++)
                     {
@@ -359,6 +365,8 @@ void SolveVorticity(int id : SV_DispatchThreadID)
                 for (int i = -1; i <= 1; i++)
                 {
                     int neighorCellId = cellId + i + j * GridDimension.x + k * GridDimension.x * GridDimension.y;
+                    if (neighorCellId < 0 || neighorCellId >= GridDimension.x * GridDimension.y * GridDimension.z)
+                        continue;
                     int2 bounds = FindParticlesInCell(neighorCellId);
                     for (int idx = bounds.x; idx < bounds.y; idx++)
                     {
