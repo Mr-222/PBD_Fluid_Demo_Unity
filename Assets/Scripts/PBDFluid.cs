@@ -63,12 +63,14 @@ public class PBDFluid : MonoBehaviour, IDisposable
         if (drawFluidParticle)
         {
             _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
+            SceneView.lastActiveSceneView.camera.nearClipPlane = 0.001f; 
             _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
         }
 
         if (drawBoundaryParticle)
         { 
             _boundary.Draw(Camera.main, sphereMesh, boundaryParticleMat, 0); 
+            SceneView.lastActiveSceneView.camera.nearClipPlane = 0.001f; 
             _boundary.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, boundaryParticleMat, 0);
         }
     }
@@ -76,8 +78,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateFluid()
     {
         Bounds bounds = new Bounds();
-        Vector3 min = new Vector3(-4, 0, -1);
-        Vector3 max = new Vector3(4, 4, 2);
+        Vector3 min = new Vector3(-4, 1, -1);
+        Vector3 max = new Vector3(4, 6, 2);
         bounds.SetMinMax(min, max);
 
         _fluid = new FluidBody(bounds, initialVelocity);

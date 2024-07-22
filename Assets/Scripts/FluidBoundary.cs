@@ -12,6 +12,13 @@ public class FluidBoundary : IDisposable
     public FluidBoundary(Bounds outerBounds, Bounds innerBounds)
     {
         Particles = new ParticlesCPU(outerBounds, innerBounds);
+        
+        // Find all MeshVoxelizers in the scene, add them to boundary particles
+        MeshVoxelizer[] rigidbodies = GameObject.FindObjectsOfType<MeshVoxelizer>();
+        foreach (var rb in rigidbodies)
+        {
+            Particles.Positions.AddRange(rb.GetParticlesWorld());
+        }
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));
         PositionsBuf.SetData(Particles.Positions);
