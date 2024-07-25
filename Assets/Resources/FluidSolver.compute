@@ -216,7 +216,8 @@ float3 PositionCorrection(int id, float3 pi, float lambda_i)
                             continue;
                         
                         // Surface tension, Chapter 4
-                        float corr = -K * pow(abs(Poly6Kernel(r) / Poly6Zero), N);
+                        // This is actually an artifact and I don't like its effect
+                        float corr = -K * pow(Poly6Kernel(r) / SurfaceTensionDenom, N);
                         
                         float3 gradW = SpikyGradKernel(diff, r);
                         delta_p += (lambda_i + Lambdas[neighborId] + corr) * MassInvDensity * gradW;

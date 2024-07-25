@@ -58,6 +58,7 @@ public class FluidSolver : IDisposable
         _shader.SetFloat("KernelRadius", Kernel.H);
         _shader.SetFloat("KernelRadius2", Kernel.H2);
         _shader.SetFloat("Poly6Zero", Kernel.Poly6(Vector3.zero));
+        _shader.SetFloat("SurfaceTensionDenom", Kernel.Poly6(new Vector3(1, 0, 0) * 0.1f * Kernel.H));
         _shader.SetFloat("Poly6Coeff", Kernel.Poly6Coeff);
         _shader.SetFloat("SpikyGradCoeff", Kernel.SpikyGradCoeff);
         _shader.SetFloat("ViscLapCoeff", Kernel.ViscLaplacianCoeff);

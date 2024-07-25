@@ -9,6 +9,7 @@ public class MeshVoxelizer : MonoBehaviour
 
     private void Start()
     {
+        HalfSize = HalfSize / this.transform.localScale.x;
         VoxelizeMesh();
     }
 

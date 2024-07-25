@@ -8,6 +8,7 @@ float KernelRadius;
 float KernelRadius2;
 
 float Poly6Zero;
+float SurfaceTensionDenom;
 float Poly6Coeff;
 float SpikyGradCoeff;
 float ViscLapCoeff;

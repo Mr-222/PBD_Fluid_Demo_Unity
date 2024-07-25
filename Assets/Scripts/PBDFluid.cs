@@ -78,8 +78,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     private void CreateFluid()
     {
         Bounds bounds = new Bounds();
-        Vector3 min = new Vector3(-4, 1, -1);
-        Vector3 max = new Vector3(4, 6, 2);
+        Vector3 min = new Vector3(-4, 5, -1);
+        Vector3 max = new Vector3(4, 9, 2);
         bounds.SetMinMax(min, max);
 
         _fluid = new FluidBody(bounds, initialVelocity);
