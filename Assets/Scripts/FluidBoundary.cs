@@ -17,7 +17,8 @@ public class FluidBoundary : IDisposable
         MeshVoxelizer[] rigidbodies = GameObject.FindObjectsOfType<MeshVoxelizer>();
         foreach (var rb in rigidbodies)
         {
-            Particles.Positions.AddRange(rb._gridPoints);
+            rb.VoxelizeMeshWithGPU();
+            Particles.Positions.AddRange(rb.VoxelPositions);
         }
 
         PositionsBuf = new ComputeBuffer(Particles.NumParticles, 4 * sizeof(float));

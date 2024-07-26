@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -28,7 +29,8 @@ public class MeshVoxelizer : MonoBehaviour
     static readonly int BoundsMin = Shader.PropertyToID("_BoundsMin");
     static readonly int VoxelGridPoints = Shader.PropertyToID("_VoxelGridPoints");
 
-    public Vector4[] _gridPoints;
+    Vector4[] _gridPoints;
+    public List<Vector4> VoxelPositions;
 
     void OnEnable()
     {
@@ -138,6 +140,8 @@ public class MeshVoxelizer : MonoBehaviour
         _gridPointCount = _voxelPointsBuffer.count;
         _voxelPointsBuffer.GetData(_gridPoints);
 
+        GenerateVoxels();
+        
         Profiler.EndSample();
     }
 
@@ -214,5 +218,17 @@ public class MeshVoxelizer : MonoBehaviour
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
         return mesh;
+    }
+
+    void GenerateVoxels()
+    {
+        VoxelPositions.Clear();
+        foreach (Vector4 pos in _gridPoints)
+        {
+            if (pos.w != 0)
+            {
+                VoxelPositions.Add(pos);
+            }
+        }
     }
 }
