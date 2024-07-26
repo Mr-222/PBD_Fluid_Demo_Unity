@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -50,6 +51,12 @@ public class MeshVoxelizer : MonoBehaviour
 
         _meshTrianglesBuffer?.Dispose();
         _meshVerticesBuffer?.Dispose();
+    }
+
+    private void OnValidate()
+    {
+        // If multiple gameObjects use the same material when draw GPU instancing, there would be problems.
+        _blocksMaterial = new Material(_blocksMaterial);
     }
 
     void Update()
