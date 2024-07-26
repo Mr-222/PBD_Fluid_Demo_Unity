@@ -25,6 +25,7 @@ int _GridWidth;
 int _GridHeight;
 int _GridDepth;
 
+//https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
 bool IntersectsTriangleAabbSat(float3 v0, float3 v1, float3 v2, float3 aabbExtents, float3 axis)
 {
     float p0 = dot(v0, axis);
@@ -41,6 +42,7 @@ bool IntersectsTriangleAabbSat(float3 v0, float3 v1, float3 v2, float3 aabbExten
     return !(max(-maxP, minP) > r);
 }
 
+//https://gdbooks.gitbooks.io/3dcollisions/content/Chapter4/aabb-triangle.html
 bool IntersectsTriangleAabb(Triangle tri, AABB aabb)
 {
     tri.a -= aabb.center;
@@ -103,6 +105,8 @@ void VoxelizeMesh(int3 id : SV_DispatchThreadID)
     aabb.center = centerPos.xyz;
     aabb.extents = _CellHalfSize.xyz;
 
+    // Check if this voxel is overlap with any triangles
+    // If overlap, then this voxel is valid
     bool intersects = false;
     for (int i = 0; i < _TriangleCount; i += 3)
     {
@@ -116,6 +120,7 @@ void VoxelizeMesh(int3 id : SV_DispatchThreadID)
             break;
     }
 
+    // If valid, set w component to 1, else 0
     float w = intersects ? 1.0 : 0.0;
     _VoxelGridPoints[id.x + _GridWidth * (id.y + _GridHeight * id.z)] = float4(centerPos, w);
 }

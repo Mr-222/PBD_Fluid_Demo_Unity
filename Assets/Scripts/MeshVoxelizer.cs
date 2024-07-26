@@ -140,6 +140,7 @@ public class MeshVoxelizer : MonoBehaviour
         _voxelizeComputeShader.GetKernelThreadGroupSizes(voxelizeKernel, out uint xGroupSize, out uint yGroupSize,
             out uint zGroupSize);
 
+        // Perform world space mesh voxelization
         _voxelizeComputeShader.Dispatch(voxelizeKernel,
             Mathf.CeilToInt(xGridSize / (float) xGroupSize),
             Mathf.CeilToInt(yGridSize / (float) yGroupSize),
@@ -147,6 +148,7 @@ public class MeshVoxelizer : MonoBehaviour
         _gridPointCount = _voxelPointsBuffer.count;
         _voxelPointsBuffer.GetData(_gridPoints);
 
+        // Generate world space voxel data for CPU read
         GenerateVoxels();
         
         Profiler.EndSample();
@@ -232,6 +234,7 @@ public class MeshVoxelizer : MonoBehaviour
         VoxelPositions.Clear();
         foreach (Vector4 pos in _gridPoints)
         {
+            // Only when w component != 0 this voxel is overlap with object mesh
             if (pos.w != 0)
             {
                 VoxelPositions.Add(pos);
