@@ -6,9 +6,7 @@ public static class CBUtility
 {
     public static void Release(ComputeBuffer buffer)
     {
-        if (buffer == null)
-            return;
-        buffer.Release();
+        buffer?.Release();
     }
 
     public static void Release(IList<ComputeBuffer> buffers)
@@ -19,9 +17,7 @@ public static class CBUtility
         int count = buffers.Count;
         for (int i = 0; i < count; i++)
         {
-            if (buffers[i] == null) 
-                continue;
-            buffers[i].Release();
+            Release(buffers[i]);
             buffers[i] = null;
         }
     }
@@ -30,9 +26,7 @@ public static class CBUtility
     {
         if (buffers.Length != 2)
             throw new ArgumentException("Swap method requires exactly 2 buffers.");
-        
-        ComputeBuffer tmp = buffers[0];
-        buffers[0] = buffers[1];
-        buffers[1] = tmp;
+
+        (buffers[0], buffers[1]) = (buffers[1], buffers[0]);
     }
 }

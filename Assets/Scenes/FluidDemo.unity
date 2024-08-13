@@ -316,6 +316,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: 0e076ce5bb9ea2c4f9b434dc66e7925d,
         type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 0e076ce5bb9ea2c4f9b434dc66e7925d,
+        type: 3}
       propertyPath: m_Materials.Array.size
       value: 1
       objectReference: {fileID: 0}
@@ -399,7 +404,7 @@ MonoBehaviour:
   _halfSize: 0.05
   _boundsMin: {x: 0.83562374, y: -1.968751, z: -1.6511258}
   _gridPointCount: 77000
-  _blocksMaterial: {fileID: 914998415}
+  _blocksMaterial: {fileID: 1893254526}
   _drawBlocks: 1
   VoxelPositions:
   - {x: 3.4856238, y: -0.61875093, z: -1.6011258, w: 1}
@@ -7501,6 +7506,7 @@ GameObject:
   m_Component:
   - component: {fileID: 802545033}
   - component: {fileID: 802545032}
+  - component: {fileID: 802545034}
   m_Layer: 0
   m_Name: 3D Fluid
   m_TagString: Untagged
@@ -7524,17 +7530,19 @@ MonoBehaviour:
     type: 3}
   fluidParticleMat: {fileID: 2100000, guid: 3ad62a4937f810a419de10435e137916, type: 2}
   boundaryParticleMat: {fileID: 2100000, guid: 5009b2efe65b5a543b06154a27204620, type: 2}
-  drawFluidParticle: 1
+  drawFluidParticle: 0
   drawBoundaryParticle: 0
+  fluidRenderer: {fileID: 1688672075}
+  drawFluid: 1
   drawLines: 1
-  run: 0
+  run: 1
   reset: 0
   initialVelocity: {x: 0, y: 0, z: 0}
   viscosity: 0.000006
   relaxation: 60
   K: 0
   N: 4
-  Vorticity: 0.001
+  Vorticity: 0.00438
 --- !u!4 &802545033
 Transform:
   m_ObjectHideFlags: 0
@@ -7550,66 +7558,30 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!21 &914998415
-Material:
-  serializedVersion: 8
+--- !u!114 &802545034
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BlockMat
-  m_Shader: {fileID: 4800000, guid: 03c82b86486310741bb6bfcea2ba14d6, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 1
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs: []
-    m_Ints: []
-    m_Floats:
-    - _Glossiness: 0.5
-    - _Metallic: 0
-    m_Colors:
-    - _Color: {r: 0.6226415, g: 0.13781264, b: 0.06755074, a: 1}
-  m_BuildTextureStacks: []
---- !u!21 &1382398997
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: BlockMat
-  m_Shader: {fileID: 4800000, guid: 03c82b86486310741bb6bfcea2ba14d6, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 1
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs: []
-    m_Ints: []
-    m_Floats:
-    - _Glossiness: 0.5
-    - _Metallic: 0
-    m_Colors:
-    - _Color: {r: 0.6226415, g: 0.13781264, b: 0.06755074, a: 1}
-  m_BuildTextureStacks: []
+  m_GameObject: {fileID: 802545031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f4bd537d5814dfbbb0e5d9ae19e5683, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_depthTexture: {fileID: 8400000, guid: 75dc532df8709a746a172554e18fd6a9, type: 2}
+  m_blurredDepthTexture: {fileID: 8400000, guid: 5cb8e850653248940b10cb45864b3e61,
+    type: 2}
+  m_blurredDepthTempTexture: {fileID: 8400000, guid: 360089640c559164abb9ce3ba328af06,
+    type: 2}
+  m_thicknessTexture: {fileID: 8400000, guid: 673fabf2e11cb3d408645c87427caf9b, type: 2}
+  m_pointRadius: 0.25
+  m_blurScale: 1.3
+  m_blurRadius: 12
+  m_blurDepthFalloff: 100
+  m_thickness: 1
+  m_softness: 1
 --- !u!1 &1688672069
 GameObject:
   m_ObjectHideFlags: 0
@@ -7620,8 +7592,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1688672072}
   - component: {fileID: 1688672071}
-  - component: {fileID: 1688672070}
   - component: {fileID: 1688672073}
+  - component: {fileID: 1688672075}
+  - component: {fileID: 1688672076}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -7629,14 +7602,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &1688672070
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1688672069}
-  m_Enabled: 1
 --- !u!20 &1688672071
 Camera:
   m_ObjectHideFlags: 0
@@ -7747,6 +7712,111 @@ MonoBehaviour:
     mipBias: 0
     varianceClampScale: 0.9
     contrastAdaptiveSharpening: 0
+--- !u!114 &1688672075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688672069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 222c40d62e783354e90551d3a9add011, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shader: {fileID: 4800000, guid: 9677c87a692c8984887b63fdcd907d29, type: 3}
+  m_color: {r: 0, g: 0.12941177, b: 0.21960784, a: 1}
+  m_specular: {r: 0.85882354, g: 0.85882354, b: 0.85882354, a: 1}
+  m_absortption: {r: 0.45790315, g: 0.6231294, b: 0.9245283, a: 1}
+  m_shininess: 32
+  m_reflection: 0.6
+  m_refraction: 0.7
+  m_thickness: 0.6
+  m_indexOfRefraction: 0.03
+  m_xFactor: 0.001
+  m_YFactor: 0.001
+  m_thicknessTexture: {fileID: 8400000, guid: 673fabf2e11cb3d408645c87427caf9b, type: 2}
+  m_blurredDepthTexture: {fileID: 8400000, guid: 5cb8e850653248940b10cb45864b3e61,
+    type: 2}
+  m_cubemap: {fileID: 8900000, guid: 1bccd113ae0cccc4880da3c80fca1fd8, type: 3}
+  draw: 0
+--- !u!114 &1688672076
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688672069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9c10c92a1554c57aa4441489993db71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  acceleration: 50
+  accSprintMultiplier: 4
+  lookSensitivity: 1
+  dampingCoefficient: 5
+  focusOnEnable: 1
+--- !u!21 &1893254526
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockMat
+  m_Shader: {fileID: 4800000, guid: 03c82b86486310741bb6bfcea2ba14d6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Glossiness: 0.5
+    - _Metallic: 0
+    m_Colors:
+    - _Color: {r: 0.6226415, g: 0.13781264, b: 0.06755074, a: 1}
+  m_BuildTextureStacks: []
+--- !u!21 &1985895287
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BlockMat
+  m_Shader: {fileID: 4800000, guid: 03c82b86486310741bb6bfcea2ba14d6, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - _Glossiness: 0.5
+    - _Metallic: 0
+    m_Colors:
+    - _Color: {r: 0.6226415, g: 0.13781264, b: 0.06755074, a: 1}
+  m_BuildTextureStacks: []
 --- !u!1001 &2022472127
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7920,7 +7990,7 @@ MonoBehaviour:
   _halfSize: 0.05
   _boundsMin: {x: -6.1958704, y: -4.3410006, z: -2.2357256}
   _gridPointCount: 282112
-  _blocksMaterial: {fileID: 1382398997}
+  _blocksMaterial: {fileID: 1985895287}
   _drawBlocks: 1
   VoxelPositions:
   - {x: -0.4458704, y: 1.7089996, z: -2.1857257, w: 1}

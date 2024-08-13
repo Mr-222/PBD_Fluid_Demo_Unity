@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 public class PBDFluid : MonoBehaviour, IDisposable
@@ -10,6 +9,8 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private Material boundaryParticleMat;
     [SerializeField] private bool drawFluidParticle = true;
     [SerializeField] private bool drawBoundaryParticle = false;
+    [SerializeField] private FluidRenderer fluidRenderer;
+    [SerializeField] private bool drawFluid = false;
     [SerializeField] private bool drawLines = true;
     [SerializeField] private bool run = true;
     [SerializeField] private bool reset = false;
@@ -30,27 +31,41 @@ public class PBDFluid : MonoBehaviour, IDisposable
     
     // Vorticity confinement
     // https://mmacklin.com/pbf_sig_preprint.pdf Chapter 5
-    [SerializeField, Range(0f, 0.01f)] private float Vorticity = 0.002f;
+    [SerializeField, Range(0f, 0.1f)] private float Vorticity = 0.002f;
     
     private FluidBody _fluid;
     private FluidBoundary _boundary;
     private FluidSolver _solver;
 
     private const float TimeStep = 1f / 60f;
+
+    private FluidDepthNormalGenerator _screenInfoGenerator;
     
     void Start()
     {
         CreateFluid();
         CreateBoundary();
         _solver = new FluidSolver(_fluid, _boundary);
+
+        _screenInfoGenerator = GetComponent<FluidDepthNormalGenerator>();
+        _screenInfoGenerator.Init(_fluid.Particles.NumParticles, _fluid.PositionsBuf);
+
+        // When rendering fluid, fluid shader needs depth texture for transparency
+        Camera.main.depthTextureMode = DepthTextureMode.Depth;
     }
     
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.P))
+            run = !run;
+        if (Input.GetKeyDown(KeyCode.R))
+            reset = !reset;
+        
         if (reset)
         {
             Dispose();
             Start();
+            reset = false;
         }
         
         SetUserDefinedParameters();
@@ -63,16 +78,14 @@ public class PBDFluid : MonoBehaviour, IDisposable
         if (drawFluidParticle)
         {
             _fluid.Draw(Camera.main, sphereMesh, fluidParticleMat, 0); // game view camera
-            SceneView.lastActiveSceneView.camera.nearClipPlane = 0.001f; 
-            _fluid.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, fluidParticleMat, 0); // scene view camera
         }
 
         if (drawBoundaryParticle)
         { 
-            _boundary.Draw(Camera.main, sphereMesh, boundaryParticleMat, 0); 
-            SceneView.lastActiveSceneView.camera.nearClipPlane = 0.001f; 
-            _boundary.Draw(SceneView.lastActiveSceneView.camera, sphereMesh, boundaryParticleMat, 0);
+            _boundary.Draw(Camera.main, sphereMesh, boundaryParticleMat, 0); // game view camera
         }
+
+        fluidRenderer.draw = drawFluid;
     }
 
     private void CreateFluid()
@@ -140,7 +153,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
         return corners;
     }
     
-    private static IList<int> _cube = new int[]
+    private static readonly IList<int> Cube = new int[]
     {
         0, 1, 1, 2, 2, 3, 3, 0,
         4, 5, 5, 6, 6, 7, 7, 4,
@@ -151,7 +164,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     {
         Vector4[] corners = GetCorners(bounds);
         DrawLines.LineMode = LINE_MODE.LINES;
-        DrawLines.Draw(cam, corners, color, Matrix4x4.identity, _cube);
+        DrawLines.Draw(cam, corners, color, Matrix4x4.identity, Cube);
     }
 
     private void OnRenderObject()
@@ -167,6 +180,9 @@ public class PBDFluid : MonoBehaviour, IDisposable
             boundaryInnerBounds.max -= new Vector3(d, d, d);
             DrawBounds(cam, Color.red, boundaryInnerBounds);
         }
+        
+        if (drawFluid)
+            _screenInfoGenerator.Draw(_fluid.PositionsBuf);
     }
 
     public void Dispose()
@@ -174,6 +190,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
         _fluid.Dispose();
         _boundary.Dispose();
         _solver.Dispose();
+        _screenInfoGenerator.Dispose();
     }
 
     private void OnDestroy()
