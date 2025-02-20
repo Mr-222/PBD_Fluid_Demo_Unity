@@ -153,13 +153,15 @@
                 float3 reflection = texCUBE(_Cube, reflectVec) * fresnel(0.02, dot(normal, v)) * _Reflection;
 
                 // REFRACTION
-                float3 refraction = tex2D(_MainTex, i.uv + normal.xy * _IndexOfRefraction) * _Refraction;
+                float distortionScale = (1.0 - 1.0 / _IndexOfRefraction) * _Refraction;
+                float2 uvOffset = normal.xy * distortionScale * thickness;
+                float3 refraction = tex2D(_MainTex, i.uv + uvOffset) * _Refraction; // Automatically handle clamp for me
 
                 // COMPOSE
                 // Beer's Law in volumetric rendering
                 // Light decays exponentially with distance
                 // Use different constant k for each color channel
-                float3 alpha = exp(-thickness * _Absorption * _Thickness);
+                float3 alpha = exp(-thickness * _Absorption);
                 float3 fluidCol = diffuse + ambient + specular + reflection + refraction;
                 
                 // If the fluid particle is behind a solid object in the scene, it has no contribution

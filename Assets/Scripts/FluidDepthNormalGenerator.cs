@@ -16,9 +16,6 @@ public class FluidDepthNormalGenerator : MonoBehaviour, IDisposable
     public float m_blurScale = 1f;
     public int m_blurRadius = 10;
     public float m_blurDepthFalloff = 100.0f;
-
-    public float m_thickness = 1.0f;
-    public float m_softness = 1.0f;
     
     private Material m_depthMaterial;
     private Material m_blurDepthMaterial;
@@ -106,8 +103,6 @@ public class FluidDepthNormalGenerator : MonoBehaviour, IDisposable
     void DrawThickness(ComputeBuffer positionsBuf)
     {
         m_thicknessMaterial.SetFloat("_PointRadius", m_pointRadius);
-        m_thicknessMaterial.SetFloat("_Thickness", m_thickness);
-        m_thicknessMaterial.SetFloat("_Softness", m_softness);
 
         m_thicknessMaterial.SetBuffer("_Positions", positionsBuf);
         m_thicknessMaterial.SetBuffer("_Vertices", m_quadVerticesBuffer);

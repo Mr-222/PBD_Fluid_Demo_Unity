@@ -54,18 +54,15 @@
 
                 float sum = 0.0;
                 float wsum = 0.0;
-                for (int x = -50; x <= 50; x++)
+                for (int x = -radius; x <= radius; x++)
                 {
                     float cur = tex2D(_DepthTex, i.coord + (float)x * float2(scaleX, scaleY));
-
                     // Range domain
                     float r2 = (depth - cur) * blurDepthFalloff;
                     float g = exp(-r2 * r2);
-
                     // Spatial domain
                     float r = (float)x * blurScale;
                     float w = exp(-r * r);
-
                     sum += cur * w * g;
                     wsum += w * g;
                 }

@@ -14,7 +14,7 @@ public class FluidBoundary : IDisposable
         Particles = new ParticlesCPU(outerBounds, innerBounds);
         
         // Find all MeshVoxelizers in the scene, add them to boundary particles
-        MeshVoxelizer[] rigidbodies = GameObject.FindObjectsOfType<MeshVoxelizer>();
+        MeshVoxelizer[] rigidbodies = GameObject.FindObjectsByType<MeshVoxelizer>(FindObjectsSortMode.None);
         foreach (var rb in rigidbodies)
         {
             rb.VoxelizeMeshWithGPU();

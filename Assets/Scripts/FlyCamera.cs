@@ -7,11 +7,12 @@ using UnityEngine;
 
 [RequireComponent(typeof(Camera) )]
 public class FlyCamera : MonoBehaviour {
+	public Vector3 initialPosition = new Vector3( 0, 0, -10 );
 	public float acceleration = 50; // how fast you accelerate
 	public float accSprintMultiplier = 4; // how much faster you go when "sprinting"
 	public float lookSensitivity = 1; // mouse look sensitivity
 	public float dampingCoefficient = 5; // how quickly you break to a halt after you stop your input
-	public bool focusOnEnable = true; // whether or not to focus and lock cursor immediately on enable
+	public bool focusOnEnable = false; // whether or not to focus and lock cursor immediately on enable
 
 	Vector3 velocity; // current velocity
 
@@ -21,6 +22,10 @@ public class FlyCamera : MonoBehaviour {
 			Cursor.lockState = value ? CursorLockMode.Locked : CursorLockMode.None;
 			Cursor.visible = value == false;
 		}
+	}
+	
+	void Start() {
+		transform.position = initialPosition;
 	}
 
 	void OnEnable() {

@@ -11,7 +11,7 @@ public class PBDFluid : MonoBehaviour, IDisposable
     [SerializeField] private bool drawBoundaryParticle = false;
     [SerializeField] private FluidRenderer fluidRenderer;
     [SerializeField] private bool drawFluid = false;
-    [SerializeField] private bool drawLines = true;
+    [SerializeField] private bool drawLines = false;
     [SerializeField] private bool run = true;
     [SerializeField] private bool reset = false;
     [SerializeField] private Vector3 initialVelocity = new Vector3(0, 0, 0);

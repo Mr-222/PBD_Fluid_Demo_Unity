@@ -24,8 +24,6 @@
             uniform sampler2D _CameraDepthTexture;
 
             float _PointRadius;
-            float _Thickness;
-            float _Softness;
 
             struct v2f
             {
