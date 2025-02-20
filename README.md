@@ -4,6 +4,4 @@ PBD Fluid Demo in Unity, contains surface tension, vorticity confinement, one-wa
 
 
 
-![demo scene](Pics/demo.gif)
-
-
+<img src="Pics/demo.gif" title="" alt="demo scene" data-align="center">
